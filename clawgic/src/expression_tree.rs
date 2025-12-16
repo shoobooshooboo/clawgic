@@ -410,11 +410,59 @@ impl std::ops::BitAnd for ExpressionTree{
     }
 }
 
-impl std::ops::BitOrAssign for ExpressionTree{
-    fn bitor_assign(&mut self, rhs: Self) {
-        *self = ExpressionTree::or(self.clone(), rhs);
+impl std::ops::BitXor for ExpressionTree{
+    type Output = ExpressionTree;
+    
+    fn bitxor(self, rhs: Self) -> Self::Output {
+        self.bicon(rhs).not()
     }
 }
+
+impl std::ops::Shr for ExpressionTree{
+    type Output = ExpressionTree;
+
+    fn shr(self, rhs: Self) -> Self::Output {
+        self.con(rhs)
+    }
+}
+
+impl std::ops::Shl for ExpressionTree{
+    type Output = ExpressionTree;
+
+    fn shl(self, rhs: Self) -> Self::Output {
+        rhs.con(self)
+    }
+}
+
+impl std::ops::BitOrAssign for ExpressionTree{
+    fn bitor_assign(&mut self, rhs: Self) {
+        *self = self.clone().or(rhs);
+    }
+}
+
+impl std::ops::BitAndAssign for ExpressionTree{
+    fn bitand_assign(&mut self, rhs: Self) {
+        *self = self.clone().and(rhs);
+    }
+}
+
+impl std::ops::BitXorAssign for ExpressionTree{
+    fn bitxor_assign(&mut self, rhs: Self) {
+        *self = self.clone().bicon(rhs).not();
+    }
+}
+
+impl std::ops::ShrAssign for ExpressionTree{
+    fn shr_assign(&mut self, rhs: Self) {
+        *self = self.clone().con(rhs);
+    }
+}
+
+impl std::ops::ShlAssign for ExpressionTree{
+    fn shl_assign(&mut self, rhs: Self) {
+        *self = rhs.con(self.clone());
+    }
+} 
 
 #[cfg(test)]
 mod test{
