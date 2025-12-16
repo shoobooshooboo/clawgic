@@ -329,6 +329,48 @@ impl ExpressionTree{
     pub fn into_node(self) -> Node{
         self.root
     }
+
+    ///consumes two trees and returns a tree in the form of first & second.
+    pub fn and(mut first: Self, second: Self) -> Self{
+        for (name, val) in second.vars{
+            first.vars.entry(name).or_insert(val);
+        }
+
+        Self { vars: first.vars, root: Node::Operator{denied: false, op: node::operator::Operator::AND, left: Box::new(first.root), right: Box::new(second.root)} }
+    }
+
+    ///consumes two trees and returns a tree in the form of forst v (wedge) second.
+    pub fn or(mut first: Self, second: Self) -> Self{
+        for (name, val) in second.vars{
+            first.vars.entry(name).or_insert(val);
+        }
+
+        Self { vars: first.vars, root: Node::Operator{denied: false, op: node::operator::Operator::OR, left: Box::new(first.root), right: Box::new(second.root)} }
+    }
+
+    ///consumes two trees and returns a tree in the form of antecedent->consequent.
+    pub fn con(mut antecedent: Self, consequent: Self) -> Self{
+        for (name, val) in consequent.vars{
+            antecedent.vars.entry(name).or_insert(val);
+        }
+
+        Self { vars: antecedent.vars, root: Node::Operator{denied: false, op: node::operator::Operator::CON, left: Box::new(antecedent.root), right: Box::new(consequent.root)} }
+    }
+
+    ///consumes two trees and returns a tree in the form of first->second.
+    pub fn bicon(mut first: Self, second: Self) -> Self{
+        for (name, val) in second.vars{
+            first.vars.entry(name).or_insert(val);
+        }
+
+        Self { vars: first.vars, root: Node::Operator{denied: false, op: node::operator::Operator::BICON, left: Box::new(first.root), right: Box::new(second.root)} }
+    }
+
+    ///consumes the tree and produces a tree in the form of ~self.
+    pub fn not(mut self) -> Self{
+        self.root.deny();
+        self
+    }
 }
 
 impl Default for ExpressionTree{

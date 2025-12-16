@@ -64,6 +64,7 @@ impl Operator{
     /// 
     /// # ex
     /// ```
+    /// use clawgic::expression_tree::node::operator::Operator;
     /// let op = Operator::AND;
     /// assert!(op.execute(true, true));
     /// assert!(!op.execute(true, false));
