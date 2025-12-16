@@ -1,0 +1,386 @@
+pub mod operator;
+
+use operator::Operator;
+use crate::expression_tree::ExpressionTreeError;
+
+/// Nodes for regular logical expression tree.
+/// 
+/// Can be a binary operator, a variable, or a constant.
+/// 
+/// Since there is only one unary operator in SL (~ - denial operator), it doesn't
+/// get its own enum type and instead is imbedded as a boolean value in operators and variables.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd)]
+pub enum Node{
+    /// Binary operator node.
+    Operator{
+        /// Whether there is an odd number of tildes preceding the operator.
+        denied: bool,
+        /// the type of operator.
+        op: Operator,
+        /// left operand.
+        left: Box<Node>,
+        /// right operand.
+        right: Box<Node>,
+    },
+    /// Variable node.
+    Variable{
+        /// Whether there is an odd number of tildes preceding the variable.
+        denied: bool,
+        /// Identifier of the variable. Ex: "A", "G", "B3".
+        name: String,
+        /// Value of the variable if it has been set.
+        value: Option<bool>,
+    },
+    /// Constant node. True or False.
+    Constant(bool),
+}
+
+impl Node{
+    /// Whether it is an operator node.
+    pub fn is_operator(&self) -> bool{
+        match self{
+            Self::Operator{..} => true,
+            _ => false,
+        }
+    }
+
+    /// Whether it is a variable node.
+    pub fn is_variable(&self) -> bool{
+        match self{
+            Self::Variable{..} => true,
+            _ => false,
+        }
+    }
+
+    /// Whether it is a constant node.
+    pub fn is_constant(&self) -> bool{
+        match self{
+            Self::Constant(_) => true,
+            _ => false,
+        }
+    }
+
+    /// Attempts to get the boolean value of the node.
+    /// 
+    /// A constant node will just return it's value
+    /// 
+    /// If a variable node contains a `Some`, it will return that inner value.
+    /// Otherwise it will return an ExpressionTreeError.
+    /// 
+    /// An operator node will attempt to perform its operation on it's left and right operands. 
+    /// Will return an ExpressionTreeError if the evaluation of the left or right results in an `Err` value. 
+    pub fn evaluate(&self) -> Result<bool, ExpressionTreeError>{
+        match self{
+            Self::Operator{op, denied, left, right} => {
+                let result = op.execute(left.evaluate()?, right.evaluate()?);
+                if *denied {Ok(!result)}
+                else {Ok(result)}
+            }
+            Self::Variable { denied, name: _, value } =>{
+                let result = match value{
+                    Some(b) => b.clone(),
+                    None => return Err(ExpressionTreeError::UninitializedVariable),
+                };
+                if *denied {Ok(!result)}
+                else {Ok(result)}
+            }
+            Self::Constant(value) => Ok(value.clone()),
+        }
+    }
+
+    /// Flips the value of a constant node and flips the `denied` value of variables and operators.
+    pub fn deny(&mut self){
+        match self{
+            Node::Constant(b) => *b = !*b,
+            Node::Variable { denied, ..} => *denied = !*denied,
+            Node::Operator { denied, ..} => *denied = !*denied,
+        }
+    }
+
+    /// Applies demorgan's law to the node if it is
+    /// a conjunction or a disjunction. Otherwise, does nothing.
+    pub fn demorgans(&mut self){
+        match self{
+            Node::Operator { denied, op, left, right } => {
+                if op.is_and() || op.is_or(){
+                    *op = if op.is_and() {Operator::OR} else {Operator::AND};
+                    *denied = !*denied;
+                    left.deny();
+                    right.deny();
+                }
+            },
+            _ => (),
+        }
+    }
+
+    /// Performs the logical rule of implication on a node if it is a conditional operator or a disjunction operator.
+    /// Otherwise, does nothing. 
+    pub fn implication(&mut self){
+        match self{
+            Node::Operator { denied: _, op, left, right: _ } => {
+                if op.is_con() || op.is_or(){
+                    *op =  if op.is_con() {Operator::OR} else {Operator::CON};
+                    left.deny();
+                }
+            },
+            _ => (),
+        }
+    }
+
+    /// Performs the logical rule of Negated Conditional on a node if it is
+    /// a conditional or a conjuction. Otherwise does nothing.
+    pub fn ncon(&mut self){
+        match self{
+            Node::Operator { denied, op, left: _, right } => {
+                if op.is_con() || op.is_and(){
+                    *op = if op.is_con() {Operator::AND} else {Operator::CON};
+                    *denied = !*denied;
+                    right.deny();
+                }
+            },
+            _ => (),
+        }
+    }
+
+    /// Performs the logical rule of Material Equivalence on a node
+    /// if it is a biconditional or a conjunction of conditionals. 
+    /// Otherwise, does nothing.
+    pub fn mat_eq(&mut self){
+        match self{
+            Node::Operator { denied: _, op, left, right } => {
+                if op.is_bicon(){
+                    *op = Operator::AND;
+                    let old_left = left.clone();
+                    let old_right = right.clone();
+                    *left = Box::new(Node::Operator { denied: false, op: Operator::CON, left: old_left.clone(), right: old_right.clone() });
+                    *right = Box::new(Node::Operator { denied: false, op: Operator::CON, left: old_right, right: old_left });
+                }else if op.is_and(){
+                    if let Node::Operator{denied: ld, op: l_op, left: ll, right: lr} = *left.clone(){
+                        if let Node::Operator { denied: rd, op: r_op, left: rl, right: rr } = *right.clone(){
+                            if l_op.is_con() && r_op.is_con() && !ld && !rd && ll == rr && lr == rl{
+                                *op = Operator::BICON;
+                                *left = ll;
+                                *right = lr;
+                            }
+                        }
+                    }
+                }
+            },
+            _ => (),
+        }
+    }
+
+    /// Performs the logical rule of Material Equivalence on a node
+    /// and turns it monotonous if it is a biconditional. 
+    /// Otherwise, does nothing.
+    /// 
+    /// Also if operator is denied, consumes the denial
+    /// and handles it accordingly.
+    pub fn mat_eq_mono(&mut self){
+        match self{
+            Node::Operator { denied, op, left, right } => {
+                if op.is_bicon(){
+                    *op = Operator::OR;
+                    let mut old_left = left.clone();
+                    let mut old_right = right.clone();
+                    if *denied{
+                        *denied = false;
+                        if old_left < old_right{
+                            old_left.deny();
+                        }
+                        else{
+                            old_right.deny();
+                        }
+                    }
+                    *left = Box::new(Node::Operator { denied: false, op: Operator::AND, left: old_left.clone(), right: old_right.clone() });
+                    old_left.deny();
+                    old_right.deny();
+                    *right = Box::new(Node::Operator { denied: false, op: Operator::AND, left: old_left, right: old_right });
+                }
+            },
+            _ => (),
+        }
+    }
+}
+
+impl ToString for Node{
+    fn to_string(&self) -> String {
+        match self{
+            Self::Operator { denied, op, .. } => {
+                let mut s = String::new();
+                if *denied{
+                    s.push('~');
+                }
+                match op{
+                    Operator::AND => s.push('&'),
+                    Operator::OR => s.push('v'),
+                    Operator::CON => s.push_str("->"),
+                    Operator::BICON => s.push_str("<->"),
+                }
+
+                s
+            }
+            Self::Variable { denied, name, .. } => {
+                let mut s = String::new();
+                if *denied{
+                    s.push('~');
+                }
+                s.push_str(name);
+                s
+            }
+            Self::Constant(b) => {
+                if *b{
+                    "True".to_string()
+                }else{
+                    "False".to_string()
+                }
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod test{
+    use super::*;
+    use test_case::test_case;
+
+    #[test_case(true ; "true node")]
+    #[test_case(false ; "false node")]
+    fn constant_node(value: bool){
+        let n = Node::Constant(value);
+        assert_eq!(n.evaluate().unwrap(), value);
+    }
+
+    #[test_case(false, Some(true), true ; "true, not denied")]
+    #[test_case(false, Some(false), false ; "false, not denied")]
+    #[test_case(true, Some(true), false ; "true, denied")]
+    #[test_case(true, Some(false), true ; "false, denied")]
+    fn variable_node(denied: bool, value: Option<bool>, expected: bool){
+        let n = Node::Variable { denied, name: "A".into(), value};
+        assert_eq!(n.evaluate().unwrap(), expected);
+    }
+
+    #[test]
+    fn variable_node_empty(){
+        let n = Node::Variable { denied: false, name: "A".into(), value: None };
+        assert!(n.evaluate().is_err());
+    }
+
+    #[test_case(Operator::AND, true, false, false, false ; "AND OPERATOR")]
+    #[test_case(Operator::OR, true, true, true, false ; "OR OPERATOR")]
+    #[test_case(Operator::CON, true, false, true, true ; "CON OPERATOR")]
+    #[test_case(Operator::BICON, true, false, false, true ; "BICON OPERATOR")]
+    fn operator_nodes(operator: Operator, ex1: bool, ex2: bool, ex3: bool, ex4: bool){
+        let op = Node::Operator {
+            denied: false,
+            op: operator,
+            left: Box::new(Node::Constant(true)),
+            right: Box::new(Node::Constant(true)) 
+        };
+        assert_eq!(op.evaluate().unwrap(), ex1, "true true failed");
+
+        let op = Node::Operator {
+            denied: false,
+            op: operator,
+            left: Box::new(Node::Constant(true)),
+            right: Box::new(Node::Constant(false)) 
+        };
+        assert_eq!(op.evaluate().unwrap(), ex2, "true false failed");
+
+        let op = Node::Operator {
+            denied: false,
+            op: operator,
+            left: Box::new(Node::Constant(false)),
+            right: Box::new(Node::Constant(true)) 
+        };
+        assert_eq!(op.evaluate().unwrap(), ex3, "false true failed");
+
+        let op = Node::Operator {
+            denied: false,
+            op: operator,
+            left: Box::new(Node::Constant(false)),
+            right: Box::new(Node::Constant(false)) 
+        };
+        assert_eq!(op.evaluate().unwrap(), ex4, "false false failed");
+    }
+
+    #[test_case(Node::Variable{denied: false, name: "A".to_string(), value: None}, "A".to_string() ; "Variable")]
+    #[test_case(Node::Variable{denied: true, name: "A".to_string(), value: None}, "~A".to_string() ; "Denied Variable")]
+    #[test_case(Node::Constant(true), "True".to_string() ; "True Constant")]
+    #[test_case(Node::Constant(false), "False".to_string() ; "False Constant")]
+    #[test_case(Node::Operator{denied: false, op: Operator::AND, left: Box::new(Node::Constant(true)), right: Box::new(Node::Constant(true))}, "&".to_string() ; "And Operator")]
+    #[test_case(Node::Operator{denied: true, op: Operator::AND, left: Box::new(Node::Constant(true)), right: Box::new(Node::Constant(true))}, "~&".to_string() ; "Denied Operator")]
+    #[test_case(Node::Operator{denied: false, op: Operator::OR, left: Box::new(Node::Constant(true)), right: Box::new(Node::Constant(true))}, "v".to_string() ; "Or Operator")]
+    #[test_case(Node::Operator{denied: false, op: Operator::CON, left: Box::new(Node::Constant(true)), right: Box::new(Node::Constant(true))}, "->".to_string() ; "Con Operator")]
+    #[test_case(Node::Operator{denied: false, op: Operator::BICON, left: Box::new(Node::Constant(true)), right: Box::new(Node::Constant(true))}, "<->".to_string() ; "Bicon Operator")]
+    fn to_string(node: Node, expected: String){
+        assert_eq!(node.to_string(), expected);
+    }
+
+    #[test_case(
+        Node::Operator{denied: true, op: Operator::AND, left: Box::new(Node::Constant(true)), right: Box::new(Node::Variable{denied: false, name: "A".to_string(), value: None})},
+        Node::Operator{denied: false, op: Operator::OR, left: Box::new(Node::Constant(false)), right: Box::new(Node::Variable{denied: true, name: "A".to_string(), value: None})}
+        ; "AND")]
+    #[test_case(
+        Node::Operator{denied: false, op: Operator::OR, left: Box::new(Node::Constant(true)), right: Box::new(Node::Variable{denied: false, name: "A".to_string(), value: None})},
+        Node::Operator{denied: true, op: Operator::AND, left: Box::new(Node::Constant(false)), right: Box::new(Node::Variable{denied: true, name: "A".to_string(), value: None})}
+        ; "OR")]
+    fn demorgans(mut node: Node, expected: Node){
+        node.demorgans();
+        assert_eq!(node, expected);
+    }
+
+    #[test_case(
+        Node::Operator { denied: false, op: Operator::BICON, left: Box::new(Node::Variable{denied: false, name: "A".to_string(), value: None}), right:  Box::new(Node::Variable{denied: false, name: "B".to_string(), value: None})},
+        Node::Operator { denied: false, op: Operator::AND, 
+            left: Box::new(Node::Operator{denied: false, op: Operator::CON, left: Box::new(Node::Variable{denied: false, name: "A".to_string(), value: None}), right: Box::new(Node::Variable{denied: false, name: "B".to_string(), value: None})}), 
+            right: Box::new(Node::Operator{denied: false, op: Operator::CON, left: Box::new(Node::Variable{denied: false, name: "B".to_string(), value: None}), right: Box::new(Node::Variable{denied: false, name: "A".to_string(), value: None})})} 
+        ; "BICON")]
+    #[test_case(
+        Node::Operator { denied: false, op: Operator::AND, 
+            left: Box::new(Node::Operator{denied: false, op: Operator::CON, left: Box::new(Node::Variable{denied: false, name: "A".to_string(), value: None}), right: Box::new(Node::Variable{denied: false, name: "B".to_string(), value: None})}), 
+            right: Box::new(Node::Operator{denied: false, op: Operator::CON, left: Box::new(Node::Variable{denied: false, name: "B".to_string(), value: None}), right: Box::new(Node::Variable{denied: false, name: "A".to_string(), value: None})})}, 
+        Node::Operator { denied: false, op: Operator::BICON, left: Box::new(Node::Variable{denied: false, name: "A".to_string(), value: None}), right:  Box::new(Node::Variable{denied: false, name: "B".to_string(), value: None})}
+        ; "AND")]
+    fn mat_eq(mut node: Node, expected: Node){
+        node.mat_eq();
+        assert_eq!(node, expected);
+    }
+
+    #[test_case(
+        Node::Operator{denied: false, op: Operator::CON, left: Box::new(Node::Constant(true)), right: Box::new(Node::Variable{denied: false, name: "A".to_string(), value: None})},
+        Node::Operator{denied: false, op: Operator::OR, left: Box::new(Node::Constant(false)), right: Box::new(Node::Variable{denied: false, name: "A".to_string(), value: None})}
+        ; "CON")]
+    #[test_case(
+        Node::Operator{denied: false, op: Operator::OR, left: Box::new(Node::Constant(true)), right: Box::new(Node::Variable{denied: false, name: "A".to_string(), value: None})},
+        Node::Operator{denied: false, op: Operator::CON, left: Box::new(Node::Constant(false)), right: Box::new(Node::Variable{denied: false, name: "A".to_string(), value: None})}
+        ; "OR")]
+    fn implication(mut node: Node, expected: Node){
+        node.implication();
+        assert_eq!(node, expected);
+    }
+
+    #[test_case(
+        Node::Operator{denied: true, op: Operator::AND, left: Box::new(Node::Constant(true)), right: Box::new(Node::Variable{denied: false, name: "A".to_string(), value: None})},
+        Node::Operator{denied: false, op: Operator::CON, left: Box::new(Node::Constant(true)), right: Box::new(Node::Variable{denied: true, name: "A".to_string(), value: None})}
+        ; "AND")]
+    #[test_case(
+        Node::Operator{denied: false, op: Operator::CON, left: Box::new(Node::Constant(true)), right: Box::new(Node::Variable{denied: false, name: "A".to_string(), value: None})},
+        Node::Operator{denied: true, op: Operator::AND, left: Box::new(Node::Constant(true)), right: Box::new(Node::Variable{denied: true, name: "A".to_string(), value: None})}
+        ; "CON")]
+    fn ncon(mut node: Node, expected: Node){
+        node.ncon();
+        assert_eq!(node, expected);
+    }
+
+    #[test_case(
+        Node::Operator { denied: false, op: Operator::BICON, left: Box::new(Node::Variable{denied: false, name: "A".to_string(), value: None}), right:  Box::new(Node::Variable{denied: false, name: "B".to_string(), value: None})},
+        Node::Operator { denied: false, op: Operator::OR, 
+            left: Box::new(Node::Operator{denied: false, op: Operator::AND, left: Box::new(Node::Variable{denied: false, name: "A".to_string(), value: None}), right: Box::new(Node::Variable{denied: false, name: "B".to_string(), value: None})}), 
+            right: Box::new(Node::Operator{denied: false, op: Operator::AND, left: Box::new(Node::Variable{denied: true, name: "A".to_string(), value: None}), right: Box::new(Node::Variable{denied: true, name: "B".to_string(), value: None})})} 
+        ; "BICON")]
+    fn mat_eq_mono(mut node: Node, expected: Node){
+        node.mat_eq_mono();
+        assert_eq!(node, expected);
+    }
+}
