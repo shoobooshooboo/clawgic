@@ -52,6 +52,7 @@ impl ExpressionTree{
         let mut operators = Vec::<Shell>::new();
 
         while !expression.is_empty(){
+            expression = expression.trim_start();
             let mut denied = false;
             while expression.starts_with("~"){
                 denied = !denied;
@@ -547,5 +548,48 @@ mod test{
         t.monotenize();
 
         assert_eq!(t.infix(), expected);
+    }
+
+    #[test]
+    fn func_construction(){
+        let expected = ExpressionTree::new("~(A&(BvC->D<->E))").unwrap();
+        let a = ExpressionTree::new("A").unwrap();
+        let b = ExpressionTree::new("B").unwrap();
+        let c = ExpressionTree::new("C").unwrap();
+        let d = ExpressionTree::new("D").unwrap();
+        let e = ExpressionTree::new("E").unwrap();
+        let expression = a.and(b.or(c).con(d).bicon(e)).not();
+
+        assert_eq!(expression.infix(), expected.infix());
+    }
+
+    #[test]
+    fn op_construction(){
+        let expected = ExpressionTree::new("~(((~A v B) & C) -> D <-> E)").unwrap();
+        let a = ExpressionTree::new("A").unwrap();
+        let b = ExpressionTree::new("B").unwrap();
+        let c = ExpressionTree::new("C").unwrap();
+        let d = ExpressionTree::new("D").unwrap();
+        let e = ExpressionTree::new("E").unwrap();
+        let expression = (((!a | b) & c) >> d) ^ e;
+
+        assert_eq!(expression.infix(), expected.infix());
+    }
+
+    #[test]
+    fn assignop_construction(){
+        let expected = ExpressionTree::new("~(((~A v B) & C) -> D <-> E)").unwrap();
+        let a = ExpressionTree::new("A").unwrap();
+        let b = ExpressionTree::new("B").unwrap();
+        let c = ExpressionTree::new("C").unwrap();
+        let d = ExpressionTree::new("D").unwrap();
+        let e = ExpressionTree::new("E").unwrap();
+        let mut expression = !a;
+        expression |= b;
+        expression &= c;
+        expression >>= d;
+        expression ^= e;
+
+        assert_eq!(expression.infix(), expected.infix());
     }
 }
