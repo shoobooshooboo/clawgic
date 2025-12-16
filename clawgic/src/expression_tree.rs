@@ -20,7 +20,7 @@ pub enum ExpressionTreeError{
 }
 
 /// Expression tree for logical expressions in SL.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ExpressionTree{
     /// All the unique variables in the tree and their current value.
     vars: HashMap<String, Option<bool>>,
@@ -330,40 +330,40 @@ impl ExpressionTree{
         self.root
     }
 
-    ///consumes two trees and returns a tree in the form of first & second.
-    pub fn and(mut first: Self, second: Self) -> Self{
+    ///consumes two trees and returns a tree in the form of self & second.
+    pub fn and(mut self, second: Self) -> Self{
         for (name, val) in second.vars{
-            first.vars.entry(name).or_insert(val);
+            self.vars.entry(name).or_insert(val);
         }
 
-        Self { vars: first.vars, root: Node::Operator{denied: false, op: node::operator::Operator::AND, left: Box::new(first.root), right: Box::new(second.root)} }
+        Self { vars: self.vars, root: Node::Operator{denied: false, op: node::operator::Operator::AND, left: Box::new(self.root), right: Box::new(second.root)} }
     }
 
-    ///consumes two trees and returns a tree in the form of forst v (wedge) second.
-    pub fn or(mut first: Self, second: Self) -> Self{
+    ///consumes two trees and returns a tree in the form of self v (wedge) second.
+    pub fn or(mut self, second: Self) -> Self{
         for (name, val) in second.vars{
-            first.vars.entry(name).or_insert(val);
+            self.vars.entry(name).or_insert(val);
         }
 
-        Self { vars: first.vars, root: Node::Operator{denied: false, op: node::operator::Operator::OR, left: Box::new(first.root), right: Box::new(second.root)} }
+        Self { vars: self.vars, root: Node::Operator{denied: false, op: node::operator::Operator::OR, left: Box::new(self.root), right: Box::new(second.root)} }
     }
 
-    ///consumes two trees and returns a tree in the form of antecedent->consequent.
-    pub fn con(mut antecedent: Self, consequent: Self) -> Self{
+    ///consumes two trees and returns a tree in the form of self->consequent.
+    pub fn con(mut self, consequent: Self) -> Self{
         for (name, val) in consequent.vars{
-            antecedent.vars.entry(name).or_insert(val);
+            self.vars.entry(name).or_insert(val);
         }
 
-        Self { vars: antecedent.vars, root: Node::Operator{denied: false, op: node::operator::Operator::CON, left: Box::new(antecedent.root), right: Box::new(consequent.root)} }
+        Self { vars: self.vars, root: Node::Operator{denied: false, op: node::operator::Operator::CON, left: Box::new(self.root), right: Box::new(consequent.root)} }
     }
 
-    ///consumes two trees and returns a tree in the form of first->second.
-    pub fn bicon(mut first: Self, second: Self) -> Self{
+    ///consumes two trees and returns a tree in the form of self->second.
+    pub fn bicon(mut self: Self, second: Self) -> Self{
         for (name, val) in second.vars{
-            first.vars.entry(name).or_insert(val);
+            self.vars.entry(name).or_insert(val);
         }
 
-        Self { vars: first.vars, root: Node::Operator{denied: false, op: node::operator::Operator::BICON, left: Box::new(first.root), right: Box::new(second.root)} }
+        Self { vars: self.vars, root: Node::Operator{denied: false, op: node::operator::Operator::BICON, left: Box::new(self.root), right: Box::new(second.root)} }
     }
 
     ///consumes the tree and produces a tree in the form of ~self.
@@ -383,6 +383,36 @@ impl Default for ExpressionTree{
 impl From<Node> for ExpressionTree{
     fn from(n: Node) -> Self{
         Self { vars: Self::create_vars(&n, HashMap::new()), root: n }
+    }
+}
+
+impl std::ops::Not for ExpressionTree{
+    type Output = ExpressionTree;
+
+    fn not(self) -> Self::Output {
+        self.not()
+    }
+}
+
+impl std::ops::BitOr for ExpressionTree{
+    type Output = ExpressionTree;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        self.or(rhs)
+    }
+}
+
+impl std::ops::BitAnd for ExpressionTree{
+    type Output = ExpressionTree;
+
+    fn bitand(self, rhs: Self) -> Self::Output {
+        self.and(rhs)
+    }
+}
+
+impl std::ops::BitOrAssign for ExpressionTree{
+    fn bitor_assign(&mut self, rhs: Self) {
+        *self = ExpressionTree::or(self.clone(), rhs);
     }
 }
 
