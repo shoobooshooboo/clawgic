@@ -9,7 +9,7 @@ use std::collections::HashMap;
 /// All the errors that can occur in making and managing an `ExpressionTree`. 
 #[derive(Debug, PartialEq, Eq)]
 pub enum ExpressionTreeError{
-    UninitializedVariable,
+    UninitializedVariable(String),
     InvalidExpression,
     UnknownSymbol,
     InvalidParentheses,
@@ -249,8 +249,8 @@ impl ExpressionTree{
     }
 
     /// Attempts to evaluate the tree with the given set of variables.
-    pub fn evaluate_with_vars(&self, vars: &HashMap<String, bool>){
-        self.root.evaluate_with_vars(vars);
+    pub fn evaluate_with_vars(&self, vars: &HashMap<String, bool>) -> Result<bool, ExpressionTreeError>{
+        self.root.evaluate_with_vars(vars)
     }
 
     /// Gets the prefix representation of the tree.
@@ -508,6 +508,8 @@ impl std::ops::ShlAssign for ExpressionTree{
 
 #[cfg(test)]
 mod test{
+    use std::collections::HashMap;
+
     use test_case::test_case;
     use crate::expression_tree::{ExpressionTree, ExpressionTreeError};
 
@@ -566,6 +568,29 @@ mod test{
 
         t.set_variable("B", true);
         assert_eq!(t.evaluate().unwrap(), ex4, "failed false true");
+    }
+
+    #[test_case("~(A&B)", false, true, true, true ; "negated conjunction")]
+    #[test_case("A&B", true, false, false, false ; "conjunction")]
+    #[test_case("AvB", true, true, false, true ; "disjunction")]
+    #[test_case("A->B", true, false, true, true ; "conditional")]
+    #[test_case("A<->B", true, false, true, false ; "biconditional")]
+    fn evaluate_with_vars(expression: &str, ex1: bool, ex2: bool, ex3: bool, ex4: bool){
+        let t = ExpressionTree::new(expression).unwrap();
+        let mut v = HashMap::new();
+        v.insert("A".to_string(), true);
+        v.insert("B".to_string(), true);
+        println!("{:#?}", v);
+        assert_eq!(t.evaluate_with_vars(&v).unwrap(), ex1, "failed true true");
+
+        v.insert("B".to_string(), false);
+        assert_eq!(t.evaluate_with_vars(&v).unwrap(), ex2, "failed true false");
+
+        v.insert("A".to_string(), false);
+        assert_eq!(t.evaluate_with_vars(&v).unwrap(), ex3, "failed false false");
+
+        v.insert("B".to_string(), true);
+        assert_eq!(t.evaluate_with_vars(&v).unwrap(), ex4, "failed false true");
     }
 
     #[test_case("A&B", "&AB" ; "One connective")]

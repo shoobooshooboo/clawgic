@@ -78,10 +78,10 @@ impl Node{
                 if *denied {Ok(!result)}
                 else {Ok(result)}
             }
-            Self::Variable { denied, name: _, value } =>{
+            Self::Variable { denied, name, value } =>{
                 let result = match value{
                     Some(b) => b.clone(),
-                    None => return Err(ExpressionTreeError::UninitializedVariable),
+                    None => return Err(ExpressionTreeError::UninitializedVariable(name.clone())),
                 };
                 if *denied {Ok(!result)}
                 else {Ok(result)}
@@ -96,13 +96,13 @@ impl Node{
     pub fn evaluate_with_vars(&self, vars: &HashMap<String, bool>) -> Result<bool, ExpressionTreeError>{
         match self{
             Self::Operator{op, denied, left, right} => {
-                let result = op.execute(left.evaluate()?, right.evaluate()?);
+                let result = op.execute(left.evaluate_with_vars(vars)?, right.evaluate_with_vars(vars)?);
                 Ok(result != *denied)
             }
             Self::Variable { denied, name, value: _ } =>{
                 let result = match vars.get(name){
                     Some(b) => b.clone(),
-                    None => return Err(ExpressionTreeError::UninitializedVariable),
+                    None => return Err(ExpressionTreeError::UninitializedVariable(name.clone())),
                 };
                 Ok (result != *denied)
             }
