@@ -1,6 +1,6 @@
 [package]
 name = "clawgic"
-version = "0.3.0"
+version = "0.3.1"
 edition = "2024"
 
 description = "Logic engine for making, modifying, and evaluating expressions from sentential (propositional) logic. Support for predicate logic will be added later."
@@ -11,4 +11,4 @@ license = "MIT OR Apache-2.0"
 keywords = ["logic", "sentential", "propositional"]
 
 [dependencies]
-test-case = "3.3.1"
+
