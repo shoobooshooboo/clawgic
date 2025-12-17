@@ -1,5 +1,7 @@
 pub mod operator;
 
+use std::collections::HashMap;
+
 use operator::Operator;
 use crate::expression_tree::ExpressionTreeError;
 
@@ -83,6 +85,26 @@ impl Node{
                 };
                 if *denied {Ok(!result)}
                 else {Ok(result)}
+            }
+            Self::Constant(value) => Ok(value.clone()),
+        }
+    }
+
+    ///evaluates the tree with a specific set of variables.
+    /// 
+    /// If some variable is not present in the map, returns `ExpressionTreeError::UninitualizedVariable`
+    pub fn evaluate_with_vars(&self, vars: &HashMap<String, bool>) -> Result<bool, ExpressionTreeError>{
+        match self{
+            Self::Operator{op, denied, left, right} => {
+                let result = op.execute(left.evaluate()?, right.evaluate()?);
+                Ok(result != *denied)
+            }
+            Self::Variable { denied, name, value: _ } =>{
+                let result = match vars.get(name){
+                    Some(b) => b.clone(),
+                    None => return Err(ExpressionTreeError::UninitializedVariable),
+                };
+                Ok (result != *denied)
             }
             Self::Constant(value) => Ok(value.clone()),
         }

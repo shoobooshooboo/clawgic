@@ -248,6 +248,11 @@ impl ExpressionTree{
         self.root.evaluate()
     }
 
+    /// Attempts to evaluate the tree with the given set of variables.
+    pub fn evaluate_with_vars(&self, vars: &HashMap<String, bool>){
+        self.root.evaluate_with_vars(vars);
+    }
+
     /// Gets the prefix representation of the tree.
     pub fn prefix(&self) -> String{
         let mut prefix = String::new();
@@ -372,6 +377,38 @@ impl ExpressionTree{
         self.root.deny();
         self
     }
+
+    // ///checks if the two expressions are logically equivalent (produce the same truth tables). Very expensive function.
+    // pub fn log_eq(&self, other: &Self) -> bool{
+    //     let mut vars = HashMap::new();
+
+    //     for (name, _) in self.vars.iter(){
+    //         vars.insert(name, false);
+    //     }
+    //     for (name, _) in other.vars.iter(){
+    //         vars.insert(name, false);
+    //     }
+
+    //     let max: u128 = 2 << vars.len();
+    //     for cur in 0..max{
+    //         let it = vars.iter_mut();
+
+    //         if self.evaluate_with_vars(other);
+    //     }
+
+    //     true
+    // }
+
+    // ///checks if the two expressions are literally exactly the same (ignoring double negations).
+    // pub fn lit_eq(&self, other: &Self) -> bool{
+    //     //this can be optimized later, but for now, it's fine.
+    //     self.prefix() == other.prefix()
+    // }
+
+    // ///checks if the two expressions are syntactically the same (one can be transformed into the other with primitive logic rules). Very expensive function.
+    // pub fn syn_eq(&self, other: &Self) -> bool{
+
+    // }
 }
 
 impl Default for ExpressionTree{
@@ -419,6 +456,7 @@ impl std::ops::BitXor for ExpressionTree{
     }
 }
 
+///equivalent to lhs.con(rhs)
 impl std::ops::Shr for ExpressionTree{
     type Output = ExpressionTree;
 
@@ -427,6 +465,7 @@ impl std::ops::Shr for ExpressionTree{
     }
 }
 
+///equivalent to rhs.con(lhs)
 impl std::ops::Shl for ExpressionTree{
     type Output = ExpressionTree;
 
@@ -453,12 +492,14 @@ impl std::ops::BitXorAssign for ExpressionTree{
     }
 }
 
+///equivalent to lhs = lhs.con(rhs)
 impl std::ops::ShrAssign for ExpressionTree{
     fn shr_assign(&mut self, rhs: Self) {
         *self = self.clone().con(rhs);
     }
 }
 
+///equivalent to rhs = rhs.con(lhs)
 impl std::ops::ShlAssign for ExpressionTree{
     fn shl_assign(&mut self, rhs: Self) {
         *self = rhs.con(self.clone());

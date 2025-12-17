@@ -3,5 +3,12 @@ name = "clawgic"
 version = "0.2.1"
 edition = "2024"
 
+description = "Logic engine for making, modifying, and evaluating expressions from sentential (propositional) logic. Support for predicate logic will be added later."
+documentation = "https://docs.rs/clawgic"
+readme = "../README.md"
+repository = "https://github.com/shoobooshooboo/clawgic"
+license = "MIT OR Apache-2.0"
+keywords = ["logic", "sentential", "propositional"]
+
 [dependencies]
 test-case = "3.3.1"
