@@ -183,4 +183,18 @@ mod test{
 
         assert_eq!(t1.syn_eq(&t2), expected);
     }
+
+    #[test_case("A&B", Ok(true) ; "over-populating")]
+    #[test_case("A&B->C", Ok(true) ; "correct number of vars")]
+    #[test_case("A&B->C&D", Err(ExpressionTreeError::UninitializedVariable("D".to_string())) ; "under-populating")]
+    fn set_variables(expr: &str, expected: Result<bool, ExpressionTreeError>){
+        let mut t = ExpressionTree::new(expr).unwrap();
+        let mut vars = HashMap::new();
+        vars.insert("A".to_string(), true);
+        vars.insert("B".to_string(), true);
+        vars.insert("C".to_string(), true);
+        t.set_variables(&vars);
+
+        assert_eq!(t.evaluate(), expected);
+    }
 }
