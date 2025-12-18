@@ -227,7 +227,7 @@ impl ExpressionTree{
         }
     }
 
-    /// Recursive helper function for `ExpressionTree::set_variable().`
+    /// Recursive helper function for `ExpressionTree::set_variable()`.
     fn set_variable_rec(target: &str, val: bool, cur_node: &mut Node){
         match cur_node{
             Node::Constant(_) => (),
@@ -239,6 +239,34 @@ impl ExpressionTree{
                 if *name == target{
                     *value = Some(val);
                 }
+            }
+        }
+    }
+
+    /// Updates the values of all the variables in `vars`.
+    pub fn set_variables(&mut self, vars: &HashMap<String, bool>){
+        for (name, b) in vars.iter(){
+            match self.vars.get_mut(name){
+                Some(v) => v.replace(*b),
+                None => continue,
+            };
+        }
+        Self::set_variables_rec(&mut self.root, vars);
+    }
+
+    /// Recursive helper function for `ExpressionTree::set_variables()`.
+    fn set_variables_rec(cur_node: &mut Node, vars: &HashMap<String, bool>){
+        match cur_node{
+            Node::Constant(_) => (),
+            Node::Operator{ denied: _, op: _, left, right } => {
+                Self::set_variables_rec(left, vars);
+                Self::set_variables_rec(right, vars);
+            }
+            Node::Variable { denied: _, name, value } => {
+                match vars.get(name){
+                    Some(b) => {value.replace(*b);},
+                    None => (),
+                };
             }
         }
     }
