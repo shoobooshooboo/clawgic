@@ -378,37 +378,54 @@ impl ExpressionTree{
         self
     }
 
-    // ///checks if the two expressions are logically equivalent (produce the same truth tables). Very expensive function.
-    // pub fn log_eq(&self, other: &Self) -> bool{
-    //     let mut vars = HashMap::new();
+    ///checks if the two expressions are logically equivalent (produce the same truth tables). Very expensive function. 
+    /// 
+    /// Currently supports up to 127 different variables.
+    pub fn log_eq(&self, other: &Self) -> bool{
+        let mut vars = HashMap::new();
 
-    //     for (name, _) in self.vars.iter(){
-    //         vars.insert(name, false);
-    //     }
-    //     for (name, _) in other.vars.iter(){
-    //         vars.insert(name, false);
-    //     }
+        for (name, _) in self.vars.iter(){
+            vars.insert(name.clone(), false);
+        }
+        for (name, _) in other.vars.iter(){
+            vars.insert(name.clone(), false);
+        }
 
-    //     let max: u128 = 2 << vars.len();
-    //     for cur in 0..max{
-    //         let it = vars.iter_mut();
+        let max: u128 = 2 << vars.len();
+        for cur in 0..max{
+            //this loop is technically const time, since the function currently only supports up to 127 variables.
+            for (i, (_, b)) in vars.iter_mut().enumerate(){
+                let i = i as u8;
+                *b = cur >> i & 1 == 1;
+            }
+            
 
-    //         if self.evaluate_with_vars(other);
-    //     }
+            if self.evaluate_with_vars(&vars) != other.evaluate_with_vars(&vars){
+                return false;
+            }
+        }
 
-    //     true
-    // }
+        true
+    }
 
-    // ///checks if the two expressions are literally exactly the same (ignoring double negations).
-    // pub fn lit_eq(&self, other: &Self) -> bool{
-    //     //this can be optimized later, but for now, it's fine.
-    //     self.prefix() == other.prefix()
-    // }
+    ///checks if the two expressions are literally exactly the same (ignoring double negations).
+    pub fn lit_eq(&self, other: &Self) -> bool{
+        //this can be optimized later, but for now, it's fine.
+        self.prefix() == other.prefix()
+    }
 
-    // ///checks if the two expressions are syntactically the same (one can be transformed into the other with primitive logic rules). Very expensive function.
-    // pub fn syn_eq(&self, other: &Self) -> bool{
-
-    // }
+    ///checks if the two expressions are syntactically the same (one can be transformed into the other with primitive logic rules). Very expensive function.
+    pub fn syn_eq(&self, other: &Self) -> bool{
+        //check if they use only the same variables.
+        let mut same_vars = true;
+        self.vars().iter().for_each(|(name, _)| if !other.vars.contains_key(name) {same_vars = false});
+        other.vars().iter().for_each(|(name, _)| if !self.vars.contains_key(name) {same_vars = false});
+        if !same_vars{
+            return false;
+        }
+        //check for logical equivalence
+        self.log_eq(other)
+    }
 }
 
 impl Default for ExpressionTree{

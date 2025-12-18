@@ -150,4 +150,37 @@ mod test{
 
         assert_eq!(expression.infix(), expected.infix());
     }
+
+    #[test_case("A&B", "B&A", true ; "swapped operands")]
+    #[test_case("A&B", "A&B", true ; "same expression")]
+    #[test_case("A&~A", "B&~B", true ; "inconsistencies")]
+    #[test_case("A&B", "A&C", false ; "completely different")]
+    fn log_eq(expr1: &str, expr2: &str, expected: bool){
+        let t1 = ExpressionTree::new(expr1).unwrap();
+        let t2 = ExpressionTree::new(expr2).unwrap();
+
+        assert_eq!(t1.log_eq(&t2), expected);
+    }
+
+    #[test_case("A&B", "B&A", false ; "swapped operands")]
+    #[test_case("A&B", "A&B", true ; "same expression")]
+    #[test_case("A&~A", "B&~B", false ; "inconsistencies")]
+    #[test_case("A&B", "A&C", false ; "completely different")]
+    fn lit_eq(expr1: &str, expr2: &str, expected: bool){
+        let t1 = ExpressionTree::new(expr1).unwrap();
+        let t2 = ExpressionTree::new(expr2).unwrap();
+
+        assert_eq!(t1.lit_eq(&t2), expected);
+    }
+
+    #[test_case("A&B", "B&A", true ; "swapped operands")]
+    #[test_case("A&B", "A&B", true ; "same expression")]
+    #[test_case("A&~A", "B&~B", false ; "inconsistencies")]
+    #[test_case("A&B", "A&C", false ; "completely different")]
+    fn syn_eq(expr1: &str, expr2: &str, expected: bool){
+        let t1 = ExpressionTree::new(expr1).unwrap();
+        let t2 = ExpressionTree::new(expr2).unwrap();
+
+        assert_eq!(t1.syn_eq(&t2), expected);
+    }
 }
