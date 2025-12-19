@@ -419,7 +419,7 @@ impl ExpressionTree{
             vars.insert(name.clone(), false);
         }
 
-        let max: u128 = 2 << vars.len();
+        let max: u128 = 1 << vars.len();
         for cur in 0..max{
             //this loop is technically const time, since the function currently only supports up to 127 variables.
             for (i, (_, b)) in vars.iter_mut().enumerate(){
@@ -455,6 +455,162 @@ impl ExpressionTree{
         self.log_eq(other)
     }
 
+    ///checks if the expression is satisfiable. Currently works on expressions with up to 127 variables. Very expensive function.
+    pub fn is_satisfiable(&self) -> bool{
+        let mut vars: HashMap<String, bool> = self.vars.iter().map(|(n, _)| (n.to_owned(), false)).collect();
+
+        let max: u128 = 1 << vars.len();
+        for cur in 0..max{
+            //this loop is technically const time, since the function currently only supports up to 127 variables.
+            for (i, (_, b)) in vars.iter_mut().enumerate(){
+                let i = i as u8;
+                *b = cur >> i & 1 == 1;
+            }
+            
+            //since the vars are gotten directly from the tree, this should never result in an uninitialized variable.
+            if self.evaluate_with_vars(&vars).unwrap(){
+                return true;
+            }
+        }
+
+        false
+    }
+
+    ///returns a set of variables that satisfies the expression if one exists. Very expensive function.
+    pub fn satisfy_one(&self) -> Option<HashMap<String, bool>>{
+        let mut vars: HashMap<String, bool> = self.vars.iter().map(|(n, _)| (n.to_owned(), false)).collect();
+
+        let max: u128 = 1 << vars.len();
+        for cur in 0..max{
+            //this loop is technically const time, since the function currently only supports up to 127 variables.
+            for (i, (_, b)) in vars.iter_mut().enumerate(){
+                let i = i as u8;
+                *b = cur >> i & 1 == 1;
+            }
+            
+            //since the vars are gotten directly from the tree, this should never result in an uninitialized variable.
+            if self.evaluate_with_vars(&vars).unwrap(){
+                return Some(vars);
+            }
+        }
+
+        None
+    }
+
+    ///returns a vector of all sets of variables that satisfy the expression. Extremely expensive function.
+    pub fn satisfy_all(&self) -> Vec<HashMap<String, bool>>{
+        let mut vars: HashMap<String, bool> = self.vars.iter().map(|(n, _)| (n.to_owned(), false)).collect();
+        let mut maps = Vec::new();
+
+        let max: u128 = 1 << vars.len();
+        for cur in 0..max{
+            //this loop is technically const time, since the function currently only supports up to 127 variables.
+            for (i, (_, b)) in vars.iter_mut().enumerate(){
+                let i = i as u8;
+                *b = cur >> i & 1 == 1;
+            }
+            
+            //since the vars are gotten directly from the tree, this should never result in an uninitialized variable.
+            if self.evaluate_with_vars(&vars).unwrap(){
+                maps.push(vars.clone());
+            }
+        }
+
+        maps
+    }
+
+    ///returns the total number of ways the expression can be satisfied. very expensive function.
+    pub fn satisfy_count(&self) -> u128{
+        let mut vars: HashMap<String, bool> = self.vars.iter().map(|(n, _)| (n.to_owned(), false)).collect();
+        let mut count: u128 = 0;
+
+        let max: u128 = 1 << vars.len();
+        for cur in 0..max{
+            //this loop is technically const time, since the function currently only supports up to 127 variables.
+            for (i, (_, b)) in vars.iter_mut().enumerate(){
+                let i = i as u8;
+                *b = cur >> i & 1 == 1;
+            }
+            
+            //since the vars are gotten directly from the tree, this should never result in an uninitialized variable.
+            if self.evaluate_with_vars(&vars).unwrap(){
+                count += 1;
+            }
+        }
+
+        count
+    }
+
+    ///returns whether the expression is a tautology (always true). Very expensive function.
+    pub fn is_tautology(&self) -> bool{
+        let mut vars: HashMap<String, bool> = self.vars.iter().map(|(n, _)| (n.to_owned(), false)).collect();
+
+        let max: u128 = 1 << vars.len();
+        for cur in 0..max{
+            //this loop is technically const time, since the function currently only supports up to 127 variables.
+            for (i, (_, b)) in vars.iter_mut().enumerate(){
+                let i = i as u8;
+                *b = cur >> i & 1 == 1;
+            }
+            
+            //since the vars are gotten directly from the tree, this should never result in an uninitialized variable.
+            if !self.evaluate_with_vars(&vars).unwrap(){
+                return false;
+            }
+        }
+
+        true
+    }
+
+    ///returns whether the expression is an inconsistency (always false). Very expensive function.
+    pub fn is_inconsistency(&self) -> bool{
+        let mut vars: HashMap<String, bool> = self.vars.iter().map(|(n, _)| (n.to_owned(), false)).collect();
+
+        let max: u128 = 1 << vars.len();
+        for cur in 0..max{
+            //this loop is technically const time, since the function currently only supports up to 127 variables.
+            for (i, (_, b)) in vars.iter_mut().enumerate(){
+                let i = i as u8;
+                *b = cur >> i & 1 == 1;
+            }
+            
+            //since the vars are gotten directly from the tree, this should never result in an uninitialized variable.
+            if self.evaluate_with_vars(&vars).unwrap(){
+                return false;
+            }
+        }
+
+        true
+    }
+
+    ///returns whether the expression is a contingency (sometimes true, sometimes false). Very expensive function.
+    pub fn is_contingency(&self) -> bool{
+        let mut vars: HashMap<String, bool> = self.vars.iter().map(|(n, _)| (n.to_owned(), false)).collect();
+        let mut can_be_false = false;
+        let mut can_be_true = false;
+
+        let max: u128 = 1 << vars.len();
+        for cur in 0..max{
+            //this loop is technically const time, since the function currently only supports up to 127 variables.
+            for (i, (_, b)) in vars.iter_mut().enumerate(){
+                let i = i as u8;
+                *b = cur >> i & 1 == 1;
+            }
+            
+            //since the vars are gotten directly from the tree, this should never result in an uninitialized variable.
+            if self.evaluate_with_vars(&vars).unwrap(){
+                can_be_true = true;
+            }else{
+                can_be_false = true;
+            }
+
+            if can_be_false && can_be_true{
+                return true;
+            }
+        }
+
+        false
+    }
 
     /// Negates the expression tree; returns a mutable reference.
     pub fn deny(&mut self) -> &mut Self{

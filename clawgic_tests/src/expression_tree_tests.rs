@@ -207,4 +207,75 @@ mod test{
 
         assert!(t1.lit_eq(&t2));
     }
+
+    #[test_case("Av~A", true ; "tautology")]
+    #[test_case("A&~A", false ; "inconsistency")]
+    #[test_case("A", true ; "contingency")]
+    fn is_satisfiable(expr: &str, expected: bool){
+        assert_eq!(ExpressionTree::new(expr).unwrap().is_satisfiable(), expected);
+    }
+
+    #[test_case("Av~A", true ; "tautology")]
+    #[test_case("A&~A", false ; "inconsistency")]
+    #[test_case("A", true ; "contingency")]
+    fn satisfy_one(expr: &str, expected: bool){
+        let tree = ExpressionTree::new(expr).unwrap();
+
+        match tree.satisfy_one(){
+            Some(v) => assert!(tree.evaluate_with_vars(&v).unwrap() && expected),
+            None => assert!(!expected),
+        };
+    }
+
+    #[test_case("Av~A", 2 ; "tautology")]
+    #[test_case("A&~A", 0 ; "inconsistency")]
+    #[test_case("A", 1 ; "contingency")]
+    fn satisfy_all(expr: &str, count: usize){
+        let tree = ExpressionTree::new(expr).unwrap();
+        let var_maps = tree.satisfy_all();
+        assert_eq!(var_maps.len(), count);
+        
+        for vars in var_maps{
+            if !tree.evaluate_with_vars(&vars).unwrap(){
+                assert!(false);
+            }
+        }
+        assert!(true);
+    }
+
+    #[test_case("Av~A", 2 ; "tautology")]
+    #[test_case("A&~A", 0 ; "inconsistency")]
+    #[test_case("A", 1 ; "contingency")]
+    fn satisfy_count(expr: &str, count: u128){
+        let tree = ExpressionTree::new(expr).unwrap();
+
+        assert_eq!(tree.satisfy_count(), count);
+    }
+
+    #[test_case("Av~A", true ; "tautology")]
+    #[test_case("A&~A", false ; "inconsistency")]
+    #[test_case("A", false ; "contingency")]
+    fn is_tautology(expr: &str, expected: bool){
+        let tree = ExpressionTree::new(expr).unwrap();
+
+        assert_eq!(tree.is_tautology(), expected);
+    }
+
+    #[test_case("Av~A", false ; "tautology")]
+    #[test_case("A&~A", true ; "inconsistency")]
+    #[test_case("A", false ; "contingency")]
+    fn is_inconsistency(expr: &str, expected: bool){
+        let tree = ExpressionTree::new(expr).unwrap();
+
+        assert_eq!(tree.is_inconsistency(), expected);
+    }
+
+    #[test_case("Av~A", false ; "tautology")]
+    #[test_case("A&~A", false ; "inconsistency")]
+    #[test_case("A", true ; "contingency")]
+    fn is_contingency(expr: &str, expected: bool){
+        let tree = ExpressionTree::new(expr).unwrap();
+
+        assert_eq!(tree.is_contingency(), expected);
+    }
 }
