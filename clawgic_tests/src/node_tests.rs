@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod test{
-    use clawgic::expression_tree::node::{Node, operator::Operator};
+    use clawgic::expression_tree::{node::{Node, operator::Operator}};
     use test_case::test_case;
 
     #[test_case(true ; "true node")]

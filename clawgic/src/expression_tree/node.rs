@@ -110,18 +110,21 @@ impl Node{
         }
     }
 
-    /// Flips the value of a constant node and flips the `denied` value of variables and operators.
-    pub fn deny(&mut self){
+    /// Negates the node; returns a mutable reference.
+    pub fn deny(&mut self) -> &mut Self{
         match self{
             Node::Constant(b) => *b = !*b,
             Node::Variable { denied, ..} => *denied = !*denied,
             Node::Operator { denied, ..} => *denied = !*denied,
-        }
+        };
+        self
     }
 
     /// Applies demorgan's law to the node if it is
-    /// a conjunction or a disjunction. Otherwise, does nothing.
-    pub fn demorgans(&mut self){
+    /// a conjunction or a disjunction; returns a mutable reference. 
+    /// 
+    /// Otherwise, does nothing and returns `None`.
+    pub fn demorgans(&mut self) -> Option<&mut Self>{
         match self{
             Node::Operator { denied, op, left, right } => {
                 if op.is_and() || op.is_or(){
@@ -129,45 +132,54 @@ impl Node{
                     *denied = !*denied;
                     left.deny();
                     right.deny();
+                    return Some(self);
                 }
             },
             _ => (),
         }
+        None
     }
 
-    /// Performs the logical rule of implication on a node if it is a conditional operator or a disjunction operator.
-    /// Otherwise, does nothing. 
-    pub fn implication(&mut self){
+    /// Performs the logical rule of implication on a node if it is a conditional operator or a disjunction operator; returns a mut reference.
+    /// 
+    /// Otherwise, does nothing and returns None.. 
+    pub fn implication(&mut self) -> Option<&mut Self>{
         match self{
             Node::Operator { denied: _, op, left, right: _ } => {
                 if op.is_con() || op.is_or(){
                     *op =  if op.is_con() {Operator::OR} else {Operator::CON};
                     left.deny();
+                    return Some(self);
                 }
             },
             _ => (),
         }
+        None
     }
 
     /// Performs the logical rule of Negated Conditional on a node if it is
-    /// a conditional or a conjuction. Otherwise does nothing.
-    pub fn ncon(&mut self){
+    /// a conditional or a conjuction; returns a mut reference. 
+    /// 
+    /// Otherwise does nothing and returns `None`.
+    pub fn ncon(&mut self) -> Option<&mut Self>{
         match self{
             Node::Operator { denied, op, left: _, right } => {
                 if op.is_con() || op.is_and(){
                     *op = if op.is_con() {Operator::AND} else {Operator::CON};
                     *denied = !*denied;
                     right.deny();
+                    return Some(self);
                 }
             },
             _ => (),
         }
+        None
     }
 
     /// Performs the logical rule of Material Equivalence on a node
-    /// if it is a biconditional or a conjunction of conditionals. 
-    /// Otherwise, does nothing.
-    pub fn mat_eq(&mut self){
+    /// if it is a biconditional or a conjunction of conditionals; returns a mut reference. 
+    /// Otherwise, does nothing and returns `None`.
+    pub fn mat_eq(&mut self) -> Option<&mut Self>{
         match self{
             Node::Operator { denied: _, op, left, right } => {
                 if op.is_bicon(){
@@ -176,6 +188,8 @@ impl Node{
                     let old_right = right.clone();
                     *left = Box::new(Node::Operator { denied: false, op: Operator::CON, left: old_left.clone(), right: old_right.clone() });
                     *right = Box::new(Node::Operator { denied: false, op: Operator::CON, left: old_right, right: old_left });
+
+                    return Some(self);
                 }else if op.is_and(){
                     if let Node::Operator{denied: ld, op: l_op, left: ll, right: lr} = *left.clone(){
                         if let Node::Operator { denied: rd, op: r_op, left: rl, right: rr } = *right.clone(){
@@ -186,19 +200,21 @@ impl Node{
                             }
                         }
                     }
+                    return Some(self);
                 }
             },
             _ => (),
         }
+        None
     }
 
     /// Performs the logical rule of Material Equivalence on a node
-    /// and turns it monotonous if it is a biconditional. 
-    /// Otherwise, does nothing.
+    /// and turns it monotonous if it is a biconditional; returns a mut reference. 
+    /// Otherwise, does nothing and returns `None`.
     /// 
     /// Also if operator is denied, consumes the denial
     /// and handles it accordingly.
-    pub fn mat_eq_mono(&mut self){
+    pub fn mat_eq_mono(&mut self) -> Option<&mut Self>{
         match self{
             Node::Operator { denied, op, left, right } => {
                 if op.is_bicon(){
@@ -218,10 +234,12 @@ impl Node{
                     old_left.deny();
                     old_right.deny();
                     *right = Box::new(Node::Operator { denied: false, op: Operator::AND, left: old_left, right: old_right });
+                    return Some(self);
                 }
             },
             _ => (),
         }
+        None
     }
 }
 

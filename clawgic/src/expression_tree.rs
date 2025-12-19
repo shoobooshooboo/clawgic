@@ -454,6 +454,70 @@ impl ExpressionTree{
         //check for logical equivalence
         self.log_eq(other)
     }
+
+
+    /// Negates the expression tree; returns a mutable reference.
+    pub fn deny(&mut self) -> &mut Self{
+        self.root.deny();
+        self
+    }
+
+    /// Applies demorgan's law to the expression tree if its main connective is
+    /// a conjunction or a disjunction; returns a mutable reference. 
+    /// 
+    /// Otherwise, does nothing and returns `None`.
+    pub fn demorgans(&mut self) -> Option<&mut Self>{
+        match self.root.demorgans(){
+            Some(_) => Some(self),
+            None => None,
+        }
+    }
+
+    /// Performs the logical rule of implication on an expression tree
+    /// if its main connective is a conditional operator
+    /// or a disjunction operator; returns a mut reference.
+    /// 
+    /// Otherwise, does nothing and returns None.. 
+    pub fn implication(&mut self) -> Option<&mut Self>{
+        match self.root.implication(){
+            Some(_) => Some(self),
+            None => None,
+        }
+    }
+
+    /// Performs the logical rule of Negated Conditional on an expression tree if its
+    /// main connective a conditional or a conjuction; returns a mut reference. 
+    /// 
+    /// Otherwise does nothing and returns `None`.
+    pub fn ncon(&mut self) -> Option<&mut Self>{
+        match self.root.ncon(){
+            Some(_) => Some(self),
+            None => None,
+        }
+    }
+
+    /// Performs the logical rule of Material Equivalence on an expression tree
+    /// if its main connective is a biconditional or a conjunction of conditionals; returns a mut reference. 
+    /// Otherwise, does nothing and returns `None`.
+    pub fn mat_eq(&mut self) -> Option<&mut Self>{
+        match self.root.mat_eq(){
+            Some(_) => Some(self),
+            None => None,
+        }
+    }
+
+    /// Performs the logical rule of Material Equivalence on an expression tree
+    /// and turns it monotonous if its main connective is a biconditional; returns a mut reference. 
+    /// Otherwise, does nothing and returns `None`.
+    /// 
+    /// Also if operator is denied, consumes the denial
+    /// and handles it accordingly.
+    pub fn mat_eq_mono(&mut self) -> Option<&mut Self>{
+        match self.root.mat_eq_mono(){
+            Some(_) => Some(self),
+            None => None,
+        }
+    }
 }
 
 impl Default for ExpressionTree{

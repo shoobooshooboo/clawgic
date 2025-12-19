@@ -197,4 +197,14 @@ mod test{
 
         assert_eq!(t.evaluate(), expected);
     }
+
+    #[test]
+    fn chaining_functions(){
+        let mut t1 = ExpressionTree::new("~(A<->B)").unwrap();
+        let t2 = ExpressionTree::new("~(~(A->B)v~(B->A))").unwrap();
+
+        t1.deny().mat_eq().unwrap().demorgans();
+
+        assert!(t1.lit_eq(&t2));
+    }
 }
