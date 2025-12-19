@@ -533,6 +533,7 @@ impl From<Node> for ExpressionTree{
     }
 }
 
+///produces the denial of the expression tree.
 impl std::ops::Not for ExpressionTree{
     type Output = ExpressionTree;
 
@@ -541,6 +542,7 @@ impl std::ops::Not for ExpressionTree{
     }
 }
 
+///produces the expression lhs v rhs
 impl std::ops::BitOr for ExpressionTree{
     type Output = ExpressionTree;
 
@@ -549,6 +551,7 @@ impl std::ops::BitOr for ExpressionTree{
     }
 }
 
+///produces the expression lhs & rhs
 impl std::ops::BitAnd for ExpressionTree{
     type Output = ExpressionTree;
 
@@ -557,6 +560,7 @@ impl std::ops::BitAnd for ExpressionTree{
     }
 }
 
+///produces the expression ~(lhs <-> rhs)
 impl std::ops::BitXor for ExpressionTree{
     type Output = ExpressionTree;
     
@@ -565,7 +569,7 @@ impl std::ops::BitXor for ExpressionTree{
     }
 }
 
-///equivalent to lhs.con(rhs)
+///produces the expression lhs -> rhs
 impl std::ops::Shr for ExpressionTree{
     type Output = ExpressionTree;
 
@@ -574,7 +578,7 @@ impl std::ops::Shr for ExpressionTree{
     }
 }
 
-///equivalent to rhs.con(lhs)
+///produces the expression rhs -> lhs
 impl std::ops::Shl for ExpressionTree{
     type Output = ExpressionTree;
 
@@ -601,14 +605,12 @@ impl std::ops::BitXorAssign for ExpressionTree{
     }
 }
 
-///equivalent to lhs = lhs.con(rhs)
 impl std::ops::ShrAssign for ExpressionTree{
     fn shr_assign(&mut self, rhs: Self) {
         *self = self.clone().con(rhs);
     }
 }
 
-///equivalent to rhs = rhs.con(lhs)
 impl std::ops::ShlAssign for ExpressionTree{
     fn shl_assign(&mut self, rhs: Self) {
         *self = rhs.con(self.clone());
