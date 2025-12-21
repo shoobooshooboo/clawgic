@@ -1,5 +1,7 @@
 #[cfg(test)]
 mod test{
+    use std::{collections::HashMap};
+
     use clawgic::expression_tree::{node::{Node, operator::Operator}};
     use test_case::test_case;
 
@@ -7,22 +9,24 @@ mod test{
     #[test_case(false ; "false node")]
     fn constant_node(value: bool){
         let n = Node::Constant(value);
-        assert_eq!(n.evaluate().unwrap(), value);
+        assert_eq!(n.evaluate(&HashMap::new()).unwrap(), value);
     }
 
-    #[test_case(false, Some(true), true ; "true, not denied")]
-    #[test_case(false, Some(false), false ; "false, not denied")]
-    #[test_case(true, Some(true), false ; "true, denied")]
-    #[test_case(true, Some(false), true ; "false, denied")]
-    fn variable_node(denied: bool, value: Option<bool>, expected: bool){
-        let n = Node::Variable { denied, name: "A".into(), value};
-        assert_eq!(n.evaluate().unwrap(), expected);
+    #[test_case(false, true, true ; "true, not denied")]
+    #[test_case(false, false, false ; "false, not denied")]
+    #[test_case(true, true, false ; "true, denied")]
+    #[test_case(true, false, true ; "false, denied")]
+    fn variable_node(denied: bool, value: bool, expected: bool){
+        let n = Node::Variable { denied, name: "A".into()};
+        let vars = HashMap::from([("A".to_string(), Some(value))]);
+        assert_eq!(n.evaluate(&vars).unwrap(), expected);
     }
 
     #[test]
     fn variable_node_empty(){
-        let n = Node::Variable { denied: false, name: "A".into(), value: None };
-        assert!(n.evaluate().is_err());
+        let n = Node::Variable { denied: false, name: "A".into()};
+        let vars = HashMap::new();
+        assert!(n.evaluate(&vars).is_err());
     }
 
     #[test_case(Operator::AND, true, false, false, false ; "AND OPERATOR")]
@@ -30,13 +34,14 @@ mod test{
     #[test_case(Operator::CON, true, false, true, true ; "CON OPERATOR")]
     #[test_case(Operator::BICON, true, false, false, true ; "BICON OPERATOR")]
     fn operator_nodes(operator: Operator, ex1: bool, ex2: bool, ex3: bool, ex4: bool){
+        let vars = HashMap::new();
         let op = Node::Operator {
             denied: false,
             op: operator,
             left: Box::new(Node::Constant(true)),
             right: Box::new(Node::Constant(true)) 
         };
-        assert_eq!(op.evaluate().unwrap(), ex1, "true true failed");
+        assert_eq!(op.evaluate(&vars).unwrap(), ex1, "true true failed");
 
         let op = Node::Operator {
             denied: false,
@@ -44,7 +49,7 @@ mod test{
             left: Box::new(Node::Constant(true)),
             right: Box::new(Node::Constant(false)) 
         };
-        assert_eq!(op.evaluate().unwrap(), ex2, "true false failed");
+        assert_eq!(op.evaluate(&vars).unwrap(), ex2, "true false failed");
 
         let op = Node::Operator {
             denied: false,
@@ -52,7 +57,7 @@ mod test{
             left: Box::new(Node::Constant(false)),
             right: Box::new(Node::Constant(true)) 
         };
-        assert_eq!(op.evaluate().unwrap(), ex3, "false true failed");
+        assert_eq!(op.evaluate(&vars).unwrap(), ex3, "false true failed");
 
         let op = Node::Operator {
             denied: false,
@@ -60,11 +65,11 @@ mod test{
             left: Box::new(Node::Constant(false)),
             right: Box::new(Node::Constant(false)) 
         };
-        assert_eq!(op.evaluate().unwrap(), ex4, "false false failed");
+        assert_eq!(op.evaluate(&vars).unwrap(), ex4, "false false failed");
     }
 
-    #[test_case(Node::Variable{denied: false, name: "A".to_string(), value: None}, "A".to_string() ; "Variable")]
-    #[test_case(Node::Variable{denied: true, name: "A".to_string(), value: None}, "~A".to_string() ; "Denied Variable")]
+    #[test_case(Node::Variable{denied: false, name: "A".to_string()}, "A".to_string() ; "Variable")]
+    #[test_case(Node::Variable{denied: true, name: "A".to_string()}, "~A".to_string() ; "Denied Variable")]
     #[test_case(Node::Constant(true), "True".to_string() ; "True Constant")]
     #[test_case(Node::Constant(false), "False".to_string() ; "False Constant")]
     #[test_case(Node::Operator{denied: false, op: Operator::AND, left: Box::new(Node::Constant(true)), right: Box::new(Node::Constant(true))}, "&".to_string() ; "And Operator")]
@@ -77,12 +82,12 @@ mod test{
     }
 
     #[test_case(
-        Node::Operator{denied: true, op: Operator::AND, left: Box::new(Node::Constant(true)), right: Box::new(Node::Variable{denied: false, name: "A".to_string(), value: None})},
-        Node::Operator{denied: false, op: Operator::OR, left: Box::new(Node::Constant(false)), right: Box::new(Node::Variable{denied: true, name: "A".to_string(), value: None})}
+        Node::Operator{denied: true, op: Operator::AND, left: Box::new(Node::Constant(true)), right: Box::new(Node::Variable{denied: false, name: "A".to_string()})},
+        Node::Operator{denied: false, op: Operator::OR, left: Box::new(Node::Constant(false)), right: Box::new(Node::Variable{denied: true, name: "A".to_string()})}
         ; "AND")]
     #[test_case(
-        Node::Operator{denied: false, op: Operator::OR, left: Box::new(Node::Constant(true)), right: Box::new(Node::Variable{denied: false, name: "A".to_string(), value: None})},
-        Node::Operator{denied: true, op: Operator::AND, left: Box::new(Node::Constant(false)), right: Box::new(Node::Variable{denied: true, name: "A".to_string(), value: None})}
+        Node::Operator{denied: false, op: Operator::OR, left: Box::new(Node::Constant(true)), right: Box::new(Node::Variable{denied: false, name: "A".to_string()})},
+        Node::Operator{denied: true, op: Operator::AND, left: Box::new(Node::Constant(false)), right: Box::new(Node::Variable{denied: true, name: "A".to_string()})}
         ; "OR")]
     fn demorgans(mut node: Node, expected: Node){
         node.demorgans();
@@ -90,16 +95,16 @@ mod test{
     }
 
     #[test_case(
-        Node::Operator { denied: false, op: Operator::BICON, left: Box::new(Node::Variable{denied: false, name: "A".to_string(), value: None}), right:  Box::new(Node::Variable{denied: false, name: "B".to_string(), value: None})},
+        Node::Operator { denied: false, op: Operator::BICON, left: Box::new(Node::Variable{denied: false, name: "A".to_string()}), right:  Box::new(Node::Variable{denied: false, name: "B".to_string()})},
         Node::Operator { denied: false, op: Operator::AND, 
-            left: Box::new(Node::Operator{denied: false, op: Operator::CON, left: Box::new(Node::Variable{denied: false, name: "A".to_string(), value: None}), right: Box::new(Node::Variable{denied: false, name: "B".to_string(), value: None})}), 
-            right: Box::new(Node::Operator{denied: false, op: Operator::CON, left: Box::new(Node::Variable{denied: false, name: "B".to_string(), value: None}), right: Box::new(Node::Variable{denied: false, name: "A".to_string(), value: None})})} 
+            left: Box::new(Node::Operator{denied: false, op: Operator::CON, left: Box::new(Node::Variable{denied: false, name: "A".to_string()}), right: Box::new(Node::Variable{denied: false, name: "B".to_string()})}), 
+            right: Box::new(Node::Operator{denied: false, op: Operator::CON, left: Box::new(Node::Variable{denied: false, name: "B".to_string()}), right: Box::new(Node::Variable{denied: false, name: "A".to_string()})})} 
         ; "BICON")]
     #[test_case(
         Node::Operator { denied: false, op: Operator::AND, 
-            left: Box::new(Node::Operator{denied: false, op: Operator::CON, left: Box::new(Node::Variable{denied: false, name: "A".to_string(), value: None}), right: Box::new(Node::Variable{denied: false, name: "B".to_string(), value: None})}), 
-            right: Box::new(Node::Operator{denied: false, op: Operator::CON, left: Box::new(Node::Variable{denied: false, name: "B".to_string(), value: None}), right: Box::new(Node::Variable{denied: false, name: "A".to_string(), value: None})})}, 
-        Node::Operator { denied: false, op: Operator::BICON, left: Box::new(Node::Variable{denied: false, name: "A".to_string(), value: None}), right:  Box::new(Node::Variable{denied: false, name: "B".to_string(), value: None})}
+            left: Box::new(Node::Operator{denied: false, op: Operator::CON, left: Box::new(Node::Variable{denied: false, name: "A".to_string()}), right: Box::new(Node::Variable{denied: false, name: "B".to_string()})}), 
+            right: Box::new(Node::Operator{denied: false, op: Operator::CON, left: Box::new(Node::Variable{denied: false, name: "B".to_string()}), right: Box::new(Node::Variable{denied: false, name: "A".to_string()})})}, 
+        Node::Operator { denied: false, op: Operator::BICON, left: Box::new(Node::Variable{denied: false, name: "A".to_string()}), right:  Box::new(Node::Variable{denied: false, name: "B".to_string()})}
         ; "AND")]
     fn mat_eq(mut node: Node, expected: Node){
         node.mat_eq();
@@ -107,12 +112,12 @@ mod test{
     }
 
     #[test_case(
-        Node::Operator{denied: false, op: Operator::CON, left: Box::new(Node::Constant(true)), right: Box::new(Node::Variable{denied: false, name: "A".to_string(), value: None})},
-        Node::Operator{denied: false, op: Operator::OR, left: Box::new(Node::Constant(false)), right: Box::new(Node::Variable{denied: false, name: "A".to_string(), value: None})}
+        Node::Operator{denied: false, op: Operator::CON, left: Box::new(Node::Constant(true)), right: Box::new(Node::Variable{denied: false, name: "A".to_string()})},
+        Node::Operator{denied: false, op: Operator::OR, left: Box::new(Node::Constant(false)), right: Box::new(Node::Variable{denied: false, name: "A".to_string()})}
         ; "CON")]
     #[test_case(
-        Node::Operator{denied: false, op: Operator::OR, left: Box::new(Node::Constant(true)), right: Box::new(Node::Variable{denied: false, name: "A".to_string(), value: None})},
-        Node::Operator{denied: false, op: Operator::CON, left: Box::new(Node::Constant(false)), right: Box::new(Node::Variable{denied: false, name: "A".to_string(), value: None})}
+        Node::Operator{denied: false, op: Operator::OR, left: Box::new(Node::Constant(true)), right: Box::new(Node::Variable{denied: false, name: "A".to_string()})},
+        Node::Operator{denied: false, op: Operator::CON, left: Box::new(Node::Constant(false)), right: Box::new(Node::Variable{denied: false, name: "A".to_string()})}
         ; "OR")]
     fn implication(mut node: Node, expected: Node){
         node.implication();
@@ -120,12 +125,12 @@ mod test{
     }
 
     #[test_case(
-        Node::Operator{denied: true, op: Operator::AND, left: Box::new(Node::Constant(true)), right: Box::new(Node::Variable{denied: false, name: "A".to_string(), value: None})},
-        Node::Operator{denied: false, op: Operator::CON, left: Box::new(Node::Constant(true)), right: Box::new(Node::Variable{denied: true, name: "A".to_string(), value: None})}
+        Node::Operator{denied: true, op: Operator::AND, left: Box::new(Node::Constant(true)), right: Box::new(Node::Variable{denied: false, name: "A".to_string()})},
+        Node::Operator{denied: false, op: Operator::CON, left: Box::new(Node::Constant(true)), right: Box::new(Node::Variable{denied: true, name: "A".to_string()})}
         ; "AND")]
     #[test_case(
-        Node::Operator{denied: false, op: Operator::CON, left: Box::new(Node::Constant(true)), right: Box::new(Node::Variable{denied: false, name: "A".to_string(), value: None})},
-        Node::Operator{denied: true, op: Operator::AND, left: Box::new(Node::Constant(true)), right: Box::new(Node::Variable{denied: true, name: "A".to_string(), value: None})}
+        Node::Operator{denied: false, op: Operator::CON, left: Box::new(Node::Constant(true)), right: Box::new(Node::Variable{denied: false, name: "A".to_string()})},
+        Node::Operator{denied: true, op: Operator::AND, left: Box::new(Node::Constant(true)), right: Box::new(Node::Variable{denied: true, name: "A".to_string()})}
         ; "CON")]
     fn ncon(mut node: Node, expected: Node){
         node.ncon();
@@ -133,10 +138,10 @@ mod test{
     }
 
     #[test_case(
-        Node::Operator { denied: false, op: Operator::BICON, left: Box::new(Node::Variable{denied: false, name: "A".to_string(), value: None}), right:  Box::new(Node::Variable{denied: false, name: "B".to_string(), value: None})},
+        Node::Operator { denied: false, op: Operator::BICON, left: Box::new(Node::Variable{denied: false, name: "A".to_string()}), right:  Box::new(Node::Variable{denied: false, name: "B".to_string()})},
         Node::Operator { denied: false, op: Operator::OR, 
-            left: Box::new(Node::Operator{denied: false, op: Operator::AND, left: Box::new(Node::Variable{denied: false, name: "A".to_string(), value: None}), right: Box::new(Node::Variable{denied: false, name: "B".to_string(), value: None})}), 
-            right: Box::new(Node::Operator{denied: false, op: Operator::AND, left: Box::new(Node::Variable{denied: true, name: "A".to_string(), value: None}), right: Box::new(Node::Variable{denied: true, name: "B".to_string(), value: None})})} 
+            left: Box::new(Node::Operator{denied: false, op: Operator::AND, left: Box::new(Node::Variable{denied: false, name: "A".to_string()}), right: Box::new(Node::Variable{denied: false, name: "B".to_string()})}), 
+            right: Box::new(Node::Operator{denied: false, op: Operator::AND, left: Box::new(Node::Variable{denied: true, name: "A".to_string()}), right: Box::new(Node::Variable{denied: true, name: "B".to_string()})})} 
         ; "BICON")]
     fn mat_eq_mono(mut node: Node, expected: Node){
         node.mat_eq_mono();

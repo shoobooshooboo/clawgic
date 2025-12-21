@@ -24,15 +24,12 @@ pub enum Node{
         /// right operand.
         right: Box<Node>,
     },
-    //OPTIMIZATION: get rid of locally-stored values in variable nodes
     /// Variable node.
     Variable{
         /// Whether there is an odd number of tildes preceding the variable.
         denied: bool,
         /// Identifier of the variable. Ex: "A", "G", "B3".
         name: String,
-        /// Value of the variable if it has been set.
-        value: Option<bool>,
     },
     /// Constant node. True or False.
     Constant(bool),
@@ -73,20 +70,24 @@ impl Node{
     /// 
     /// An operator node will attempt to perform its operation on it's left and right operands. 
     /// Will return an ExpressionTreeError if the evaluation of the left or right results in an `Err` value. 
-    pub fn evaluate(&self) -> Result<bool, ExpressionTreeError>{
+    pub fn evaluate(&self, vars: &HashMap<String, Option<bool>>) -> Result<bool, ExpressionTreeError>{
         match self{
             Self::Operator{op, denied, left, right} => {
-                let result = op.execute(left.evaluate()?, right.evaluate()?);
+                let result = op.execute(left.evaluate(vars)?, right.evaluate(vars)?);
                 if *denied {Ok(!result)}
                 else {Ok(result)}
             }
-            Self::Variable { denied, name, value } =>{
-                let result = match value{
-                    Some(b) => b.clone(),
+            Self::Variable { denied, name} =>{
+                let result = match vars.get(name){
+                    Some(b) => {
+                        if b.is_none(){
+                            return Err(ExpressionTreeError::UninitializedVariable(name.clone()))
+                        }
+                        b.unwrap()
+                    },
                     None => return Err(ExpressionTreeError::UninitializedVariable(name.clone())),
                 };
-                if *denied {Ok(!result)}
-                else {Ok(result)}
+                Ok(*denied != result)
             }
             Self::Constant(value) => Ok(value.clone()),
         }
@@ -101,7 +102,7 @@ impl Node{
                 let result = op.execute(left.evaluate_with_vars(vars)?, right.evaluate_with_vars(vars)?);
                 Ok(result != *denied)
             }
-            Self::Variable { denied, name, value: _ } =>{
+            Self::Variable { denied, name} =>{
                 let result = match vars.get(name){
                     Some(b) => b.clone(),
                     None => return Err(ExpressionTreeError::UninitializedVariable(name.clone())),

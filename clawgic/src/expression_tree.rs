@@ -190,7 +190,7 @@ impl ExpressionTree{
                         let left = Self::construct_tree(shells)?;
                         Node::Operator { denied, op, left: Box::new(left), right: Box::new(right) }
                     },
-                    Shell::Variable(denied, name) => Node::Variable { denied, name, value: None },
+                    Shell::Variable(denied, name) => Node::Variable { denied, name},
                     Shell::Constant(value) => Node::Constant(value),
                     Shell::Parentheses => return Err(ExpressionTreeError::InvalidParentheses),
                     Shell::Tilde => return Err(ExpressionTreeError::InvalidExpression),
@@ -211,8 +211,8 @@ impl ExpressionTree{
                 Self::create_vars(right, vars)
             },
             Node::Constant(_) => vars,
-            Node::Variable { denied: _, name, value } => {
-                vars.insert(name.clone(), *value);
+            Node::Variable { denied: _, name} => {
+                vars.insert(name.clone(), None);
                 vars
             },
         };
@@ -224,23 +224,6 @@ impl ExpressionTree{
     pub fn set_variable(&mut self, name: &str, value: bool){
         if self.vars.contains_key(name){
             self.vars.insert(name.to_string(), Some(value));
-            Self::set_variable_rec(name, value, &mut self.root);
-        }
-    }
-
-    /// Recursive helper function for `ExpressionTree::set_variable()`.
-    fn set_variable_rec(target: &str, val: bool, cur_node: &mut Node){
-        match cur_node{
-            Node::Constant(_) => (),
-            Node::Operator{ denied: _, op: _, left, right } => {
-                Self::set_variable_rec(target, val, left);
-                Self::set_variable_rec(target, val, right);
-            }
-            Node::Variable { denied: _, name, value } => {
-                if *name == target{
-                    *value = Some(val);
-                }
-            }
         }
     }
 
@@ -251,24 +234,6 @@ impl ExpressionTree{
                 Some(v) => v.replace(*b),
                 None => continue,
             };
-        }
-        Self::set_variables_rec(&mut self.root, vars);
-    }
-
-    /// Recursive helper function for `ExpressionTree::set_variables()`.
-    fn set_variables_rec(cur_node: &mut Node, vars: &HashMap<String, bool>){
-        match cur_node{
-            Node::Constant(_) => (),
-            Node::Operator{ denied: _, op: _, left, right } => {
-                Self::set_variables_rec(left, vars);
-                Self::set_variables_rec(right, vars);
-            }
-            Node::Variable { denied: _, name, value } => {
-                match vars.get(name){
-                    Some(b) => {value.replace(*b);},
-                    None => (),
-                };
-            }
         }
     }
 
@@ -290,7 +255,7 @@ impl ExpressionTree{
     /// Recursive helper function for `ExpressionTree::replace_variable()`
     fn replace_variable_rec(cur_node: &mut Node, var: &str, new_expression: &ExpressionTree){
         if cur_node.is_variable(){
-            let Node::Variable { denied, name, value: _} = cur_node.clone()
+            let Node::Variable { denied, name} = cur_node.clone()
                 else{panic!("this should never happen (in replace_variable_rec())")};
             if var == name{
                 *cur_node = new_expression.root.clone();
@@ -338,7 +303,7 @@ impl ExpressionTree{
     /// Recursive helper function for `ExpressionTree::replace_variable()`
     fn replace_variables_rec(cur_node: &mut Node, vars: &HashMap<String, &ExpressionTree>){
         if cur_node.is_variable(){
-            let Node::Variable { denied, name, value: _} = cur_node.clone()
+            let Node::Variable { denied, name} = cur_node.clone()
                 else{panic!("this should never happen (in replace_variable_rec())")};
             match vars.get(&name){
                 Some(new_expression) => {
@@ -362,7 +327,7 @@ impl ExpressionTree{
     //compute the tree and store it in ExpressionTree.
     /// Attempts to evaluate the tree.
     pub fn evaluate(&self) -> Result<bool, ExpressionTreeError>{
-        self.root.evaluate()
+        self.root.evaluate(&self.vars)
     }
 
     /// Attempts to evaluate the tree with the given set of variables.
