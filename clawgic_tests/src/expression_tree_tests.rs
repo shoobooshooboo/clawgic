@@ -309,4 +309,14 @@ mod test{
 
         assert_eq!(tree.infix(), expected.infix());
     }
+
+    #[test]
+    fn evaluate_after_deny(){
+        let mut tree = ExpressionTree::new("A").unwrap();
+        tree.set_variable("A", true);
+        assert!(tree.evaluate().unwrap());
+        tree.deny();
+        assert!(!tree.evaluate().unwrap());
+        assert!(tree.not().evaluate().unwrap());
+    }
 }

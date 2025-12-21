@@ -4,6 +4,7 @@ mod shell;
 use shell::Shell;
 use node::Node;
 use node::operator::Operator;
+use std::cell::Cell;
 use std::collections::HashMap;
 
 /// All the errors that can occur in making and managing an `ExpressionTree`. 
@@ -26,6 +27,8 @@ pub struct ExpressionTree{
     vars: HashMap<String, Option<bool>>,
     /// Root node of the expression Tree.
     root: Node,
+    /// Cached previous result of `evaluate()`
+    value: Cell<Option<bool>>
 }
 
 impl ExpressionTree{
@@ -40,6 +43,7 @@ impl ExpressionTree{
         Ok(Self{
             vars,
             root,
+            value: Cell::new(None),
         })
     }
 
@@ -222,8 +226,9 @@ impl ExpressionTree{
 
     /// Searches for every variable with the given name and updates it's value.
     pub fn set_variable(&mut self, name: &str, value: bool){
-        if self.vars.contains_key(name){
+        if self.vars.get(name).is_some_and(|v| v.is_none_or(|b| value != b)){
             self.vars.insert(name.to_string(), Some(value));
+            self.value.replace(None);
         }
     }
 
@@ -234,6 +239,7 @@ impl ExpressionTree{
                 Some(v) => v.replace(*b),
                 None => continue,
             };
+            self.value.replace(None);
         }
     }
 
@@ -247,6 +253,7 @@ impl ExpressionTree{
                 }
             }
             Self::replace_variable_rec(&mut self.root, var, new_expression);
+            self.value.replace(None);
         }
 
         self
@@ -295,6 +302,7 @@ impl ExpressionTree{
         }
         if something_in_vars{
             Self::replace_variables_rec(&mut self.root, vars);
+            self.value.replace(None);
         }
 
         self
@@ -327,7 +335,19 @@ impl ExpressionTree{
     //compute the tree and store it in ExpressionTree.
     /// Attempts to evaluate the tree.
     pub fn evaluate(&self) -> Result<bool, ExpressionTreeError>{
-        self.root.evaluate(&self.vars)
+        match self.value.get(){
+            Some(v) => Ok(v),
+            None => {
+                let result = self.root.evaluate(&self.vars);
+                match result{
+                    Ok(b) => {
+                        self.value.replace(Some(b));
+                        Ok(b)
+                    },
+                    Err(e) => Err(e),
+                }
+            }
+        }
     }
 
     /// Attempts to evaluate the tree with the given set of variables.
@@ -428,7 +448,11 @@ impl ExpressionTree{
             self.vars.entry(name).or_insert(val);
         }
 
-        Self { vars: self.vars, root: Node::Operator{denied: false, op: node::operator::Operator::AND, left: Box::new(self.root), right: Box::new(second.root)} }
+        Self { 
+            vars: self.vars, 
+            root: Node::Operator{denied: false, op: node::operator::Operator::AND, left: Box::new(self.root), right: Box::new(second.root)},
+            value: Cell::new(None),
+        }
     }
 
     ///consumes two trees and returns a tree in the form of self v (wedge) second.
@@ -437,7 +461,11 @@ impl ExpressionTree{
             self.vars.entry(name).or_insert(val);
         }
 
-        Self { vars: self.vars, root: Node::Operator{denied: false, op: node::operator::Operator::OR, left: Box::new(self.root), right: Box::new(second.root)} }
+        Self { 
+            vars: self.vars, 
+            root: Node::Operator{denied: false, op: node::operator::Operator::OR, left: Box::new(self.root), right: Box::new(second.root)},
+            value: Cell::new(None),
+        }
     }
 
     ///consumes two trees and returns a tree in the form of self->consequent.
@@ -446,7 +474,11 @@ impl ExpressionTree{
             self.vars.entry(name).or_insert(val);
         }
 
-        Self { vars: self.vars, root: Node::Operator{denied: false, op: node::operator::Operator::CON, left: Box::new(self.root), right: Box::new(consequent.root)} }
+        Self { 
+            vars: self.vars, 
+            root: Node::Operator{denied: false, op: node::operator::Operator::CON, left: Box::new(self.root), right: Box::new(consequent.root)},
+            value: Cell::new(None),
+        }
     }
 
     ///consumes two trees and returns a tree in the form of self->second.
@@ -455,12 +487,20 @@ impl ExpressionTree{
             self.vars.entry(name).or_insert(val);
         }
 
-        Self { vars: self.vars, root: Node::Operator{denied: false, op: node::operator::Operator::BICON, left: Box::new(self.root), right: Box::new(second.root)} }
+        Self { 
+            vars: self.vars, 
+            root: Node::Operator{denied: false, op: node::operator::Operator::BICON, left: Box::new(self.root), right: Box::new(second.root)},
+            value: Cell::new(None),
+        }
     }
 
     ///consumes the tree and produces a tree in the form of ~self.
     pub fn not(mut self) -> Self{
         self.root.deny();
+        match self.value.get_mut(){
+            Some(v) => *v = !*v,
+            None => (),
+        };
         self
     }
 
@@ -674,6 +714,10 @@ impl ExpressionTree{
     /// Negates the expression tree; returns a mutable reference.
     pub fn deny(&mut self) -> &mut Self{
         self.root.deny();
+        match self.value.get_mut(){
+            Some(v) => *v = !*v,
+            None => (),
+        };
         self
     }
 
@@ -738,13 +782,21 @@ impl ExpressionTree{
 impl Default for ExpressionTree{
     /// Default value is just a constant false node.
     fn default() -> Self {
-        Self { vars: HashMap::new(), root: Node::Constant(false) }
+        Self { 
+            vars: HashMap::new(), 
+            root: Node::Constant(false),
+            value: Cell::new(None),
+        }
     }
 }
 
 impl From<Node> for ExpressionTree{
     fn from(n: Node) -> Self{
-        Self { vars: Self::create_vars(&n, HashMap::new()), root: n }
+        Self { 
+            vars: Self::create_vars(&n, HashMap::new()), 
+            root: n,
+            value: Cell::new(None),
+        }
     }
 }
 
