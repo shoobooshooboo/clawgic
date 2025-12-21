@@ -35,6 +35,7 @@ let mut tree = (!a | c ) >> b; //equivalent to ~AvC->B
 
 # modification
 once you have an expression constructed, you can modify it in a couple ways.
+
 There are some primitive rules you can call that don't change logical content:
 ```rs
 let mut tree = ExpressionTree::new("A<->B").unwrap();    //A<->B
@@ -55,6 +56,7 @@ tree.replace_variables("A", &subtree); // produces ~(DvE)&B->C
 there's two ways to evaluate an expression. 
 
 The first way is by manually setting all of the variables and then calling `ExpressionTree::evaluate()`
+
 This method requires your tree be mutable to set variables in it.
 ```rs
 let mut tree = ExpressionTree::new("A&B->C").unwrap();
@@ -73,6 +75,7 @@ assert!(tree.evaluate());
 ```
 
 The second method is by passing a map of all the variables into `ExpressionTree::evaluate_with_vars()`.
+
 This method works on an immutable tree, but will come at the cost of performance (once I get around to optimizing a little).
 ```rs
 let tree = ExpressionTree::new("A&B->C").unwrap();
@@ -89,6 +92,7 @@ assert!(tree.evaluate_with_vars(vars));
 
 # analyzing
 Next, we have ways of analyzing individual expressions.
+
 At the current moment, most of these functions are extremely unoptimized and will run pretty slow. You shouldn't really notice unless you're really pushing this package to it's limits (it's current limits being comparing two functions with a combined 127 distinct variables).
 
 Here are some functions for analyzing a single expression:
@@ -125,7 +129,7 @@ assert!(cont.evaluate_with_vars(cont.satisfy_one().unwrap()));
 ```
 
 # comparison
-Finally, we have ways of comparing multiple expressions.
+Finally, we have ways of comparing multiple expressions. (these are also very unoptimized right now)
 ```rs
 let t1 = ExpressionTree::new("A&B").unwrap();
 let t2 = ExpressionTree::new("B&A").unwrap();
@@ -143,7 +147,7 @@ assert!(t5.log_eq(&t6));
 assert!(!t1.lit_eq(&t2));
 assert!(t3.lit_eq(&t4));
 //syntactic equivalence checks for if the expressions are logically equivalent AND have the same variables.
-//this is distinct from logical equivalence as 
+//this is distinct from logical equivalence as all tautologies are logically equivalent, but not syntactically equivalent.
 assert!(t1.syn_eq(&t2));
 assert!(!t5.syn_eq(&t6));
 ```
