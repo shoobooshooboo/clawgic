@@ -1,6 +1,6 @@
 [package]
 name = "clawgic"
-version = "0.5.0"
+version = "0.5.1"
 edition = "2024"
 
 description = "Logic engine for making, modifying, and evaluating expressions from sentential (propositional) logic. Support for predicate logic will be added later."

@@ -278,4 +278,35 @@ mod test{
 
         assert_eq!(tree.is_contingency(), expected);
     }
+
+    #[test_case("A&B", "A", "CvD", "(CvD)&B" ; "normal")]
+    #[test_case("A&B", "C", "CvD", "A&B" ; "no variable to replace")]
+    #[test_case("A", "A", "CvD", "CvD" ; "single variable")]
+    #[test_case("~A&A", "A", "CvD", "~(CvD)&(CvD)" ; "denied")]
+    fn replace_variable(expr1: &str, var: &str, subexpr: &str, expected: &str){
+        let mut t1 = ExpressionTree::new(expr1).unwrap();
+        let st = ExpressionTree::new(subexpr).unwrap();
+        let res = ExpressionTree::new(expected).unwrap();
+
+        t1.replace_variable(var, &st);
+        assert!(t1.lit_eq(&res));
+    }
+
+    #[test]
+    fn replace_variables(){
+        let mut tree = ExpressionTree::new("~A&B->Cv~D").unwrap();
+        let mut vars = HashMap::new();
+        let a_subtree = ExpressionTree::new("BvD").unwrap();
+        vars.insert("A".to_string(), &a_subtree);
+        let b_subtree = ExpressionTree::new("E->F").unwrap();
+        vars.insert("B".to_string(), &b_subtree);
+        let e_subtree = ExpressionTree::new("H").unwrap();
+        vars.insert("E".to_string(), &e_subtree);
+
+        let expected = ExpressionTree::new("~(BvD)&(E->F)->Cv~D").unwrap();
+
+        tree.replace_variables(&vars);
+
+        assert_eq!(tree.infix(), expected.infix());
+    }
 }

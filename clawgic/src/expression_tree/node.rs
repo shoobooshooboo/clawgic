@@ -24,6 +24,7 @@ pub enum Node{
         /// right operand.
         right: Box<Node>,
     },
+    //OPTIMIZATION: get rid of locally-stored values in variable nodes
     /// Variable node.
     Variable{
         /// Whether there is an odd number of tildes preceding the variable.
@@ -62,6 +63,7 @@ impl Node{
         }
     }
 
+    //OPTIMIZE: have this function take the hashmap of variables.
     /// Attempts to get the boolean value of the node.
     /// 
     /// A constant node will just return it's value

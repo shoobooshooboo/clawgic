@@ -202,6 +202,7 @@ impl ExpressionTree{
         Ok(node)
     }
 
+    //OPTIMIZATION: create vars at the same time as construct_tree to avoid excessive work.
     /// Takes a `Node` and the vars map and does a depth-first-search for every variable, inserting them into the map as they are found.
     fn create_vars(node: & Node, mut vars: HashMap<String, Option<bool>>) -> HashMap<String, Option<bool>>{
         let vars = match node{
@@ -271,6 +272,94 @@ impl ExpressionTree{
         }
     }
 
+    /// Replaces all instances of var in the tree with new_expression. Adds all variables from new_expression to self as they are.
+    pub fn replace_variable(&mut self, var: &str, new_expression: &ExpressionTree) -> &mut Self{
+        if self.vars.contains_key(var){
+            self.vars.remove(var);
+            for (name, val) in new_expression.vars.iter(){
+                if !self.vars.contains_key(name){
+                    self.vars.insert(name.clone(), val.clone());
+                }
+            }
+            Self::replace_variable_rec(&mut self.root, var, new_expression);
+        }
+
+        self
+    }
+
+    /// Recursive helper function for `ExpressionTree::replace_variable()`
+    fn replace_variable_rec(cur_node: &mut Node, var: &str, new_expression: &ExpressionTree){
+        if cur_node.is_variable(){
+            let Node::Variable { denied, name, value: _} = cur_node.clone()
+                else{panic!("this should never happen (in replace_variable_rec())")};
+            if var == name{
+                *cur_node = new_expression.root.clone();
+                if denied{
+                    cur_node.deny();
+                }
+            }
+        }else if cur_node.is_operator(){
+            let Node::Operator { denied: _, op: _, left, right } = cur_node 
+                else{panic!("this should never happen (in replace_variable_rec())")};
+            Self::replace_variable_rec(left, var, new_expression);
+            Self::replace_variable_rec(right, var, new_expression);
+        }
+    }
+
+    /// Replaces all instances of var in the tree with new_expression. Adds all variables from new_expression to self as they are.
+    pub fn replace_variables(&mut self, vars: &HashMap<String, &ExpressionTree>) -> &mut Self{
+        //gotta remove all vars before adding the new ones.
+        let mut something_in_vars = false;
+        let mut was_in_vars = Vec::with_capacity(vars.len());
+        for (var, _) in vars.iter(){
+            if self.vars.remove(var).is_some(){
+                was_in_vars.push(true);
+                something_in_vars = true;
+            }else{
+                was_in_vars.push(false);
+            }
+        }
+        for (i, (_, new_expression)) in vars.iter().enumerate(){
+            if was_in_vars[i]{
+                for (name, val) in new_expression.vars.iter(){
+                    if !self.vars.contains_key(name){
+                        self.vars.insert(name.clone(), val.clone());
+                    }
+                }
+            }
+        }
+        if something_in_vars{
+            Self::replace_variables_rec(&mut self.root, vars);
+        }
+
+        self
+    }
+
+    /// Recursive helper function for `ExpressionTree::replace_variable()`
+    fn replace_variables_rec(cur_node: &mut Node, vars: &HashMap<String, &ExpressionTree>){
+        if cur_node.is_variable(){
+            let Node::Variable { denied, name, value: _} = cur_node.clone()
+                else{panic!("this should never happen (in replace_variable_rec())")};
+            match vars.get(&name){
+                Some(new_expression) => {
+                    *cur_node = new_expression.root.clone();
+                    if denied{
+                        cur_node.deny();
+                    }
+                },
+                None => (),
+            }
+        }else if cur_node.is_operator(){
+            let Node::Operator { denied: _, op: _, left, right } = cur_node 
+                else{panic!("this should never happen (in replace_variable_rec())")};
+            Self::replace_variables_rec(left, vars);
+            Self::replace_variables_rec(right, vars);
+        }
+    }
+
+    //OPTIMIZATION: subsequent calls don't re-compute stuff. 
+    //have set_variable/s_rec() and replace_variable/s_rec() 
+    //compute the tree and store it in ExpressionTree.
     /// Attempts to evaluate the tree.
     pub fn evaluate(&self) -> Result<bool, ExpressionTreeError>{
         self.root.evaluate()
@@ -331,6 +420,7 @@ impl ExpressionTree{
         Self::monotenize_rec(&mut self.root);
     }
 
+    //OPTIMIZE: make monotenization work from the bottom up (monotenization expands the tree)
     /// Recursive helper function for `ExpressionTree::monotenize()`.
     fn monotenize_rec(node: &mut Node){
         match &*node{
@@ -359,7 +449,10 @@ impl ExpressionTree{
         }
     }
 
-    /// Consumes tree and returns the root node.
+    /// Consumes tree and returns the root node. 
+    /// 
+    /// If you find yourself needing this, chances are that 
+    /// there's probably just a feature I have yet to add.
     pub fn into_node(self) -> Node{
         self.root
     }
@@ -436,6 +529,7 @@ impl ExpressionTree{
         true
     }
 
+    //OPTIMIZE: make it work recursively to directly tell if the trees are the same.
     ///checks if the two expressions are literally exactly the same (ignoring double negations).
     pub fn lit_eq(&self, other: &Self) -> bool{
         //this can be optimized later, but for now, it's fine.
@@ -686,6 +780,18 @@ impl Default for ExpressionTree{
 impl From<Node> for ExpressionTree{
     fn from(n: Node) -> Self{
         Self { vars: Self::create_vars(&n, HashMap::new()), root: n }
+    }
+}
+
+impl From<&str> for ExpressionTree{
+    fn from(value: &str) -> Self {
+        ExpressionTree::new(value).unwrap()
+    }
+}
+
+impl From<String> for ExpressionTree{
+    fn from(value: String) -> Self {
+        ExpressionTree::new(&value).unwrap()
     }
 }
 
