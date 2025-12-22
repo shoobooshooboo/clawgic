@@ -95,8 +95,6 @@ mod test{
         assert_eq!(t.prefix(), expected);
     }
 
-//∧ ∨ ¬ ➞ ⟷ ⋅
-
     #[test_case("A&B", "(A&B)" ; "no expected changes")]
     #[test_case("~(A&B)", "(¬A∨¬B)" ; "just demorgans")]
     #[test_case("A->B", "(¬A∨B)" ; "just implication")]
@@ -322,8 +320,16 @@ mod test{
         assert!(tree.not().evaluate().unwrap());
     }
 
-    #[test]
-    fn new_with_weird_ops(){
+//∧ ∨ ¬ ➞ ⟷ ⋅
 
+    #[test_case("¬(A∧B)∨(C➞D⟷E)", "~(A&B)v(C->D<->E)" ; "mathematical")]
+    #[test_case("¬(A⋅B)+(C➞D⟷E)", "~(A&B)v(C->D<->E)" ; "logic gates")]
+    #[test_case("~(A*B)+(C->D<->E)", "~(A&B)v(C->D<->E)" ; "logic gates ascii")]
+    #[test_case("!(A&B)|(C➞D⟷E)", "~(A&B)v(C->D<->E)" ; "coding")]
+    #[test_case("!(A&B)|(C->D<->E)", "~(A&B)v(C->D<->E)" ; "coding ascii")]
+    fn new_with_weird_ops(expression: &str, expected: &str){
+        let t1 = ExpressionTree::new(expression).unwrap();
+        let t2 = ExpressionTree::new(expected).unwrap();
+        assert!(t1.lit_eq(&t2));
     }
 }

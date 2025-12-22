@@ -60,7 +60,7 @@ impl ExpressionTree{
             let mut denied = false;
             while expression.starts_with('~') || expression.starts_with('!') || expression.starts_with('¬'){
                 denied = !denied;
-                expression = &expression[1..];
+                expression = if expression.starts_with('¬') {&expression[2..]} else {&expression[1..]};
             }
             if denied{
                 operators.push(Shell::Tilde);
@@ -71,7 +71,7 @@ impl ExpressionTree{
                 Some(c) => c,
                 None => return Err(ExpressionTreeError::InvalidExpression),
             };
-            let mut chars_consumed = 1;
+            let mut chars_consumed = cur_char.len_utf8();
 
             if cur_char.is_uppercase(){
                 loop{
@@ -82,7 +82,7 @@ impl ExpressionTree{
                     if !cur_char.is_numeric(){
                         break;
                     }
-                    chars_consumed += 1;
+                    chars_consumed += cur_char.len_utf8();
                 }
                 if denied{
                     operators.pop();
@@ -96,6 +96,7 @@ impl ExpressionTree{
                 match cur_char{
                     '&' | '*' | '∧' | '⋅' => op = Operator::AND,
                     'v' | '|' | '+' | '∨' => op = Operator::OR,
+                    '➞' => op = Operator::CON,
                     '⟷' => op = Operator::BICON,
                     '<' => {
                         op = Operator::BICON;
@@ -123,7 +124,7 @@ impl ExpressionTree{
                             };
                             chars_consumed += 1;
                         }
-                        if cur_char != '>' && cur_char != '➞'{
+                        if cur_char != '>'{
                             return Err(ExpressionTreeError::UnknownSymbol);
                         }
                     }
