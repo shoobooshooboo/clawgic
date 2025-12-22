@@ -58,7 +58,7 @@ impl ExpressionTree{
         while !expression.is_empty(){
             expression = expression.trim_start();
             let mut denied = false;
-            while expression.starts_with("~"){
+            while expression.starts_with('~') || expression.starts_with('!'){
                 denied = !denied;
                 expression = &expression[1..];
             }
@@ -89,39 +89,41 @@ impl ExpressionTree{
                 }
                 shells.push(Shell::Variable(denied, expression[0..chars_consumed].to_string()));
             }
-            else if cur_char == '&' || cur_char == 'v' || cur_char == '<' || cur_char == '-' || cur_char == '>'{
+            else if cur_char == '&' || cur_char == '*' || cur_char == 'v' || cur_char == '|' || cur_char == '+' 
+                    || cur_char == '<' || cur_char == '-' || cur_char == '>'{
                 let op: Operator;
-                if cur_char == '&' {
-                    op = Operator::AND;
-                }else if cur_char == 'v'{
-                    op = Operator::OR;
-                }else if cur_char == '<'{
-                    op = Operator::BICON;
-                    chars_consumed += 1;
-                    loop{
-                        cur_char = match chars.next(){
-                            Some(c) => c,
-                            None => return Err(ExpressionTreeError::UnknownSymbol),
-                        };
-                        if cur_char != '-'{
-                            break;
-                        }
-                        chars_consumed += 1
-                    }
-                    if cur_char != '>'{
-                        return Err(ExpressionTreeError::UnknownSymbol);
-                    }
-                }else/*if cur_char == '-' || cur_char == '>'*/{
-                    op = Operator::CON;
-                    while cur_char == '-'{
-                        cur_char = match chars.next(){
-                            Some(c) => c,
-                            None => return Err(ExpressionTreeError::UnknownSymbol),
-                        };
+                match cur_char{
+                    '&' | '*' => op = Operator::AND,
+                    'v' | '|' | '+' => op = Operator::OR,
+                    '<' => {
+                        op = Operator::BICON;
                         chars_consumed += 1;
+                        loop{
+                            cur_char = match chars.next(){
+                                Some(c) => c,
+                                None => return Err(ExpressionTreeError::UnknownSymbol),
+                            };
+                            if cur_char != '-'{
+                                break;
+                            }
+                            chars_consumed += 1
+                        }
+                        if cur_char != '>'{
+                            return Err(ExpressionTreeError::UnknownSymbol);
+                        }
                     }
-                    if cur_char != '>'{
-                        return Err(ExpressionTreeError::UnknownSymbol);
+                    _ /*'-' | '>' */ => {
+                        op = Operator::CON;
+                        while cur_char == '-'{
+                            cur_char = match chars.next(){
+                                Some(c) => c,
+                                None => return Err(ExpressionTreeError::UnknownSymbol),
+                            };
+                            chars_consumed += 1;
+                        }
+                        if cur_char != '>'{
+                            return Err(ExpressionTreeError::UnknownSymbol);
+                        }
                     }
                 }
                 match operators.last(){
