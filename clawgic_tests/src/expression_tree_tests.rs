@@ -86,21 +86,23 @@ mod test{
     }
 
     #[test_case("A&B", "&AB" ; "One connective")]
-    #[test_case("(A&B)vC", "v&ABC" ; "Two connectives")]
-    #[test_case("(A&B)vC->D", "->v&ABCD" ; "Three connectives")]
-    #[test_case("(A&B)vC->(D<->E)", "->v&ABC<->DE" ; "four connectives")]
-    #[test_case("(A1&~B)v~C3->~(D<->E)", "->v&A1~B~C3~<->DE" ; "four connectives with funny symbols")]
+    #[test_case("(A&B)vC", "∨&ABC" ; "Two connectives")]
+    #[test_case("(A&B)vC->D", "➞∨&ABCD" ; "Three connectives")]
+    #[test_case("(A&B)vC->(D<->E)", "➞∨&ABC⟷DE" ; "four connectives")]
+    #[test_case("(A1&~B)v~C3->~(D<->E)", "➞∨&A1¬B¬C3¬⟷DE" ; "four connectives with funny symbols")]
     fn prefix(expression: &str, expected: &str){
         let t = ExpressionTree::new(expression).unwrap();
         assert_eq!(t.prefix(), expected);
     }
 
+//∧ ∨ ¬ ➞ ⟷ ⋅
+
     #[test_case("A&B", "(A&B)" ; "no expected changes")]
-    #[test_case("~(A&B)", "(~Av~B)" ; "just demorgans")]
-    #[test_case("A->B", "(~AvB)" ; "just implication")]
-    #[test_case("~(A->B)", "(A&~B)" ; "just ncon")]
-    #[test_case("A<->B", "((A&B)v(~A&~B))" ; "just mat_eq")]
-    #[test_case("~(A&~B)v~C->~(D<->E)", "(((A&~B)&C)v((~D&E)v(D&~E)))" ; "lots of stuff")]
+    #[test_case("~(A&B)", "(¬A∨¬B)" ; "just demorgans")]
+    #[test_case("A->B", "(¬A∨B)" ; "just implication")]
+    #[test_case("~(A->B)", "(A&¬B)" ; "just ncon")]
+    #[test_case("A<->B", "((A&B)∨(¬A&¬B))" ; "just mat_eq")]
+    #[test_case("~(A&~B)v~C->~(D<->E)", "(((A&¬B)&C)∨((¬D&E)∨(D&¬E)))" ; "lots of stuff")]
     fn monotenize(expression: &str, expected: &str){
         let mut t = ExpressionTree::new(expression).unwrap();
         t.monotenize();
@@ -318,5 +320,10 @@ mod test{
         tree.deny();
         assert!(!tree.evaluate().unwrap());
         assert!(tree.not().evaluate().unwrap());
+    }
+
+    #[test]
+    fn new_with_weird_ops(){
+
     }
 }

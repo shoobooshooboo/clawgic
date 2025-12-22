@@ -58,7 +58,7 @@ impl ExpressionTree{
         while !expression.is_empty(){
             expression = expression.trim_start();
             let mut denied = false;
-            while expression.starts_with('~') || expression.starts_with('!'){
+            while expression.starts_with('~') || expression.starts_with('!') || expression.starts_with('¬'){
                 denied = !denied;
                 expression = &expression[1..];
             }
@@ -89,12 +89,14 @@ impl ExpressionTree{
                 }
                 shells.push(Shell::Variable(denied, expression[0..chars_consumed].to_string()));
             }
-            else if cur_char == '&' || cur_char == '*' || cur_char == 'v' || cur_char == '|' || cur_char == '+' 
-                    || cur_char == '<' || cur_char == '-' || cur_char == '>'{
+            else if cur_char == '&' || cur_char == '*' || cur_char == '∧' || cur_char == '⋅' ||
+                    cur_char == 'v' || cur_char == '∨' || cur_char == '|' || cur_char == '+' || 
+                    cur_char == '<' || cur_char == '-' || cur_char == '>' || cur_char == '➞' || cur_char == '⟷' {
                 let op: Operator;
                 match cur_char{
-                    '&' | '*' => op = Operator::AND,
-                    'v' | '|' | '+' => op = Operator::OR,
+                    '&' | '*' | '∧' | '⋅' => op = Operator::AND,
+                    'v' | '|' | '+' | '∨' => op = Operator::OR,
+                    '⟷' => op = Operator::BICON,
                     '<' => {
                         op = Operator::BICON;
                         chars_consumed += 1;
@@ -121,7 +123,7 @@ impl ExpressionTree{
                             };
                             chars_consumed += 1;
                         }
-                        if cur_char != '>'{
+                        if cur_char != '>' && cur_char != '➞'{
                             return Err(ExpressionTreeError::UnknownSymbol);
                         }
                     }

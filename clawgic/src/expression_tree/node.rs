@@ -60,7 +60,6 @@ impl Node{
         }
     }
 
-    //OPTIMIZE: have this function take the hashmap of variables.
     /// Attempts to get the boolean value of the node.
     /// 
     /// A constant node will just return it's value
@@ -244,10 +243,8 @@ impl Node{
         }
         None
     }
-}
 
-impl ToString for Node{
-    fn to_string(&self) -> String {
+    pub fn to_ascii(&self) -> String{
         match self{
             Self::Operator { denied, op, .. } => {
                 let mut s = String::new();
@@ -267,6 +264,42 @@ impl ToString for Node{
                 let mut s = String::new();
                 if *denied{
                     s.push('~');
+                }
+                s.push_str(name);
+                s
+            }
+            Self::Constant(b) => {
+                if *b{
+                    "True".to_string()
+                }else{
+                    "False".to_string()
+                }
+            }
+        }
+    }
+}
+
+impl ToString for Node{
+    fn to_string(&self) -> String {
+        match self{
+            Self::Operator { denied, op, .. } => {
+                let mut s = String::new();
+                if *denied{
+                    s.push('¬');
+                }
+                match op{
+                    Operator::AND => s.push('&'),
+                    Operator::OR => s.push('∨'),
+                    Operator::CON => s.push_str("➞"),
+                    Operator::BICON => s.push_str("⟷"),
+                }
+
+                s
+            }
+            Self::Variable { denied, name, .. } => {
+                let mut s = String::new();
+                if *denied{
+                    s.push('¬');
                 }
                 s.push_str(name);
                 s
