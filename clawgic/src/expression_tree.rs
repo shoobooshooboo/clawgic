@@ -32,6 +32,24 @@ pub struct ExpressionTree{
 }
 
 impl ExpressionTree{
+    ///returns a tree that is just a true node
+    #[allow(non_snake_case)]
+    pub fn TRUE() -> Self{
+        Self { vars: HashMap::new(), root: Node::Constant(true), value: Cell::new(Some(true)) }
+    }
+
+    /// Returns a tree that is just a false node
+    #[allow(non_snake_case)]
+    pub fn FALSE() -> Self{
+        Self { vars: HashMap::new(), root: Node::Constant(false), value: Cell::new(Some(false)) }
+        
+    }
+
+    // Constructs a tree with a single constant node of the given value.
+    pub fn constant(b: bool) -> Self{
+        Self { vars: HashMap::new(), root: Node::Constant(b), value: Cell::new(Some(b)) }
+    }
+
     /// Constructs a new expression tree given a string representation of an infix logical expression.
     pub fn new(expression: &str) -> Result<Self, ExpressionTreeError>{
         let shells = &mut Self::shunting_yard(expression)?;
