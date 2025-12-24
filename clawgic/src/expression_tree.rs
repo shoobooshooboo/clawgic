@@ -80,6 +80,17 @@ impl ExpressionTree{
                 denied = !denied;
                 expression = if expression.starts_with('¬') {&expression[2..]} else {&expression[1..]};
             }
+
+            if expression.starts_with("TRUE"){
+                shells.push(Shell::Constant(denied));
+                expression = &expression[4..];
+                continue;
+            }else if expression.starts_with("FALSE"){
+                shells.push(Shell::Constant(!denied));
+                expression = &expression[5..];
+                continue;
+            }
+
             if denied{
                 operators.push(Shell::Tilde);
             }
