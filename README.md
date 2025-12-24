@@ -49,7 +49,15 @@ you can also replace variables with entire expressions.
 ```rs
 let mut tree = ExpressionTree::new("~A&B->C").unwrap();
 let subtree = ExpressionTree::new("DvE").unwrap(); 
-tree.replace_variables("A", &subtree); // produces ~(DvE)&B->C
+tree.replace_variable("A", &subtree); // produces ~(DvE)&B->C
+```
+
+As of v0.5.4, you can now also replace entire expressions in the tree!
+```rs
+let mut tree = ExpressionTree::new("A&~(BvC)").unwrap();
+let old_subtree = ExpressionTree::new("BvC").unwrap();
+let new_subtree = ExpressionTree::new("~(C->D)");
+tree.replace_expression(&old_subtree, &new_subtree); //produces A&(C->D) (the two negations canceled out)
 ```
 
 # evaluating
