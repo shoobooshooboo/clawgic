@@ -10,6 +10,9 @@ mod test{
     #[test_case("(A&B)vC" ; "two connectives")]
     #[test_case("A->B<->C" ; "two arrows")]
     #[test_case("(~(A&B)vC->~D<->~~E)" ; "many connectives")]
+    #[test_case("TRUE" ; "r#true")]
+    #[test_case("FALSE" ; "r#false")]
+    #[test_case("TRUE&FALSE" ; "true and false")]
     fn new_ok(expression: &str){
         let t = ExpressionTree::new(expression);
         
@@ -322,11 +325,11 @@ mod test{
 
 //∧ ∨ ¬ ➞ ⟷ ⋅
 
-    #[test_case("¬(A∧B)∨(C➞D⟷E)", "~(A&B)v(C->D<->E)" ; "mathematical")]
-    #[test_case("¬(A⋅B)+(C➞D⟷E)", "~(A&B)v(C->D<->E)" ; "logic gates")]
-    #[test_case("~(A*B)+(C->D<->E)", "~(A&B)v(C->D<->E)" ; "logic gates ascii")]
-    #[test_case("!(A&B)|(C➞D⟷E)", "~(A&B)v(C->D<->E)" ; "coding")]
-    #[test_case("!(A&B)|(C->D<->E)", "~(A&B)v(C->D<->E)" ; "coding ascii")]
+    #[test_case("¬(A∧B)∨(C➞TRUE⟷E)", "~(A&B)v(C->TRUE<->E)" ; "mathematical")]
+    #[test_case("¬(A⋅B)+(C➞TRUE⟷E)", "~(A&B)v(C->TRUE<->E)" ; "logic gates")]
+    #[test_case("~(A*B)+(C->TRUE<->E)", "~(A&B)v(C->TRUE<->E)" ; "logic gates ascii")]
+    #[test_case("!(A&B)|(C➞TRUE⟷E)", "~(A&B)v(C->TRUE<->E)" ; "coding")]
+    #[test_case("!(A&B)|(C->TRUE<->E)", "~(A&B)v(C->TRUE<->E)" ; "coding ascii")]
     fn new_with_weird_ops(expression: &str, expected: &str){
         let t1 = ExpressionTree::new(expression).unwrap();
         let t2 = ExpressionTree::new(expected).unwrap();
@@ -349,5 +352,34 @@ mod test{
         println!("{}", expected.prefix());
 
         assert!(tree.lit_eq(&expected));
+    }
+
+    #[allow(non_snake_case)]
+    #[test]
+    fn TRUE(){
+        assert!(ExpressionTree::TRUE().evaluate().unwrap());
+    }
+
+    #[allow(non_snake_case)]
+    #[test]
+    fn FALSE(){
+        assert!(!ExpressionTree::FALSE().evaluate().unwrap());
+    }
+
+    #[test_case(true ; "r#true")]
+    #[test_case(false ; "r#false")]
+    fn constant(b: bool){
+        assert_eq!(ExpressionTree::constant(b).evaluate().unwrap(), b);
+    }
+
+    #[test_case("TRUE", true ; "r#true")]
+    #[test_case("FALSE", false ; "r#false")]
+    #[test_case("TRUE&FALSE", false ; "true and false")]
+    #[test_case("TRUEvFALSE", true ; "true or false")]
+    #[test_case("~TRUE", false ; "denied true")]
+    #[test_case("~FALSE", true ; "denied false")]
+    fn new_with_constants(expression: &str, expected: bool){
+        let tree = ExpressionTree::new(expression).unwrap();
+        assert_eq!(tree.evaluate().unwrap(), expected);
     }
 }

@@ -70,8 +70,8 @@ mod test{
 
     #[test_case(Node::Variable{denied: false, name: "A".to_string()}, "A".to_string() ; "Variable")]
     #[test_case(Node::Variable{denied: true, name: "A".to_string()}, "¬A".to_string() ; "Denied Variable")]
-    #[test_case(Node::Constant(true), "True".to_string() ; "True Constant")]
-    #[test_case(Node::Constant(false), "False".to_string() ; "False Constant")]
+    #[test_case(Node::Constant(true), "TRUE".to_string() ; "True Constant")]
+    #[test_case(Node::Constant(false), "FALSE".to_string() ; "False Constant")]
     #[test_case(Node::Operator{denied: false, op: Operator::AND, left: Box::new(Node::Constant(true)), right: Box::new(Node::Constant(true))}, "&".to_string() ; "And Operator")]
     #[test_case(Node::Operator{denied: true, op: Operator::AND, left: Box::new(Node::Constant(true)), right: Box::new(Node::Constant(true))}, "¬&".to_string() ; "Denied Operator")]
     #[test_case(Node::Operator{denied: false, op: Operator::OR, left: Box::new(Node::Constant(true)), right: Box::new(Node::Constant(true))}, "∨".to_string() ; "Or Operator")]

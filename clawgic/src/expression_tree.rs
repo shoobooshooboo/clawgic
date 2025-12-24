@@ -82,11 +82,11 @@ impl ExpressionTree{
             }
 
             if expression.starts_with("TRUE"){
-                shells.push(Shell::Constant(denied));
+                shells.push(Shell::Constant(!denied));
                 expression = &expression[4..];
                 continue;
             }else if expression.starts_with("FALSE"){
-                shells.push(Shell::Constant(!denied));
+                shells.push(Shell::Constant(denied));
                 expression = &expression[5..];
                 continue;
             }
