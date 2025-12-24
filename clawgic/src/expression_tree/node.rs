@@ -314,3 +314,11 @@ impl ToString for Node{
         }
     }
 }
+
+impl std::ops::Not for Node{
+    type Output = Self;
+    fn not(mut self) -> Self::Output {
+        self.deny();
+        self
+    }
+}

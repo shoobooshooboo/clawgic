@@ -335,9 +335,58 @@ impl ExpressionTree{
         }
     }
 
-    //OPTIMIZATION: subsequent calls don't re-compute stuff. 
-    //have set_variable/s_rec() and replace_variable/s_rec() 
-    //compute the tree and store it in ExpressionTree.
+    ///replaces all instances of old expression in the tree with new expression.
+    pub fn replace_expression(&mut self, old: &ExpressionTree, new: &ExpressionTree){
+        Self::replace_expression_rec(&mut self.root, old, new);
+        let mut new_vars= Self::create_vars(&self.root, HashMap::new());
+
+        for (name, val) in self.vars.iter(){
+           if let Some(var) = new_vars.get_mut(name){
+                *var = *val; 
+            }
+        }
+        for (name, val) in new.vars.iter(){
+            if let Some(var) = new_vars.get_mut(name){
+                if var.is_none(){
+                    *var = *val;
+                }
+            }
+        }
+    }
+
+    fn replace_expression_rec(cur_node: &mut Node, old: &ExpressionTree, new: &ExpressionTree){
+        if *cur_node == old.root || (cur_node.is_constant() && old.root.is_constant()){
+            *cur_node = new.root.clone();
+        }else{
+            if cur_node.is_variable() && old.root.is_variable(){
+                let Node::Variable { denied: cur_denied, name: cur_name } = cur_node 
+                    else {panic!("this shouldn't be possible (replace_expression_rec)")};
+                let Node::Variable { denied: old_denied, name: old_name } = &old.root
+                    else {panic!("this shouldn't be possible (replace_expression_rec)")};
+                if old_name == cur_name{
+                    let deny = *cur_denied != *old_denied;
+                    *cur_node = new.root.clone();
+                    if deny{
+                        cur_node.deny();
+                    }
+                }
+            }else if cur_node.is_operator() && old.root.is_operator(){
+                let Node::Operator { denied: cur_denied, op: cur_op, left: cur_left, right: cur_right } = cur_node
+                    else {panic!("this shouldn't be possible (replace_expression_rec)")};
+                    let Node::Operator { denied: old_denied, op: old_op, left: old_left, right: old_right } = &old.root
+                    else {panic!("this shouldn't be possible (replace_expression_rec)")};
+
+                    if *cur_op == *old_op && cur_left == old_left && cur_right == old_right{
+                        let deny = *cur_denied != *old_denied;
+                        *cur_node = new.root.clone();
+                        if deny{
+                            cur_node.deny();
+                        }
+                    }
+            }
+        }
+    }
+
     /// Attempts to evaluate the tree.
     pub fn evaluate(&self) -> Result<bool, ExpressionTreeError>{
         match self.value.get(){
