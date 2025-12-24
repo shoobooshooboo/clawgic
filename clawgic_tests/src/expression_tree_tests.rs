@@ -332,4 +332,22 @@ mod test{
         let t2 = ExpressionTree::new(expected).unwrap();
         assert!(t1.lit_eq(&t2));
     }
+
+    #[test_case("A&B", "A&B", "CvD", "CvD" ; "complete replacement")]
+    #[test_case("A&(BvC)", "BvC", "CvD", "A&(CvD)" ; "subexpression")]
+    #[test_case("A&~(BvC)", "BvC", "CvD", "A&~(CvD)" ; "old denied")]
+    #[test_case("A&~(BvC)", "BvC", "~(CvD)", "A&(CvD)" ; "both denied")]
+    #[test_case("A&(BvC)", "BvC", "~(CvD)", "A&~(CvD)" ; "new denied")]
+
+    fn replace_expression(expression: &str, old: &str, new: &str, expected: &str){
+        let mut tree = ExpressionTree::new(expression).unwrap();
+        let old = ExpressionTree::new(old).unwrap();
+        let new = ExpressionTree::new(new).unwrap();
+        let expected = ExpressionTree::new(expected).unwrap();
+        tree.replace_expression(&old, &new);
+        println!("{}", tree.prefix());
+        println!("{}", expected.prefix());
+
+        assert!(tree.lit_eq(&expected));
+    }
 }

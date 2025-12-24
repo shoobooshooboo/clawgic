@@ -357,32 +357,35 @@ impl ExpressionTree{
     fn replace_expression_rec(cur_node: &mut Node, old: &ExpressionTree, new: &ExpressionTree){
         if *cur_node == old.root || (cur_node.is_constant() && old.root.is_constant()){
             *cur_node = new.root.clone();
-        }else{
-            if cur_node.is_variable() && old.root.is_variable(){
-                let Node::Variable { denied: cur_denied, name: cur_name } = cur_node 
-                    else {panic!("this shouldn't be possible (replace_expression_rec)")};
-                let Node::Variable { denied: old_denied, name: old_name } = &old.root
-                    else {panic!("this shouldn't be possible (replace_expression_rec)")};
-                if old_name == cur_name{
-                    let deny = *cur_denied != *old_denied;
-                    *cur_node = new.root.clone();
-                    if deny{
-                        cur_node.deny();
-                    }
+            return;
+        }
+        if cur_node.is_variable() && old.root.is_variable(){
+            let Node::Variable { denied: cur_denied, name: cur_name } = cur_node 
+                else {panic!("this shouldn't be possible (replace_expression_rec)")};
+            let Node::Variable { denied: old_denied, name: old_name } = &old.root
+                else {panic!("this shouldn't be possible (replace_expression_rec)")};
+            if old_name == cur_name{
+                let deny = *cur_denied != *old_denied;
+                *cur_node = new.root.clone();
+                if deny{
+                    cur_node.deny();
                 }
-            }else if cur_node.is_operator() && old.root.is_operator(){
-                let Node::Operator { denied: cur_denied, op: cur_op, left: cur_left, right: cur_right } = cur_node
-                    else {panic!("this shouldn't be possible (replace_expression_rec)")};
-                    let Node::Operator { denied: old_denied, op: old_op, left: old_left, right: old_right } = &old.root
-                    else {panic!("this shouldn't be possible (replace_expression_rec)")};
+            }
+        }else if cur_node.is_operator() && old.root.is_operator(){
+            let Node::Operator { denied: cur_denied, op: cur_op, left: cur_left, right: cur_right } = cur_node
+                else {panic!("this shouldn't be possible (replace_expression_rec)")};
+            let Node::Operator { denied: old_denied, op: old_op, left: old_left, right: old_right } = &old.root
+                else {panic!("this shouldn't be possible (replace_expression_rec)")};
 
-                    if *cur_op == *old_op && cur_left == old_left && cur_right == old_right{
-                        let deny = *cur_denied != *old_denied;
-                        *cur_node = new.root.clone();
-                        if deny{
-                            cur_node.deny();
-                        }
-                    }
+            if *cur_op == *old_op && cur_left == old_left && cur_right == old_right{
+                let deny = *cur_denied != *old_denied;
+                *cur_node = new.root.clone();
+                if deny{
+                    cur_node.deny();
+                }
+            }else{
+                Self::replace_expression_rec(cur_left, old, new);
+                Self::replace_expression_rec(cur_right, old, new);
             }
         }
     }
