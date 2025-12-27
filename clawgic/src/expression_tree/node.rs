@@ -3,7 +3,7 @@ pub mod operator;
 use std::collections::HashMap;
 
 use operator::Operator;
-use crate::expression_tree::ExpressionTreeError;
+use crate::{expression_tree::ExpressionTreeError, operator_notation::OperatorNotation};
 
 /// Nodes for regular logical expression tree.
 /// 
@@ -244,18 +244,19 @@ impl Node{
         None
     }
 
-    pub fn to_ascii(&self) -> String{
+    ///Returns a string representation of the current node based on the given notation.
+    pub fn print(&self, notation: &OperatorNotation) -> String{
         match self{
             Self::Operator { denied, op, .. } => {
                 let mut s = String::new();
                 if *denied{
-                    s.push('~');
+                    s.push_str(notation.neg());
                 }
                 match op{
-                    Operator::AND => s.push('&'),
-                    Operator::OR => s.push('v'),
-                    Operator::CON => s.push_str("->"),
-                    Operator::BICON => s.push_str("<->"),
+                    Operator::AND => s.push_str(notation.and()),
+                    Operator::OR => s.push_str(notation.or()),
+                    Operator::CON => s.push_str(notation.con()),
+                    Operator::BICON => s.push_str(notation.bicon()),
                 }
 
                 s
@@ -263,7 +264,7 @@ impl Node{
             Self::Variable { denied, name, .. } => {
                 let mut s = String::new();
                 if *denied{
-                    s.push('~');
+                    s.push_str(notation.neg());
                 }
                 s.push_str(name);
                 s
@@ -277,41 +278,17 @@ impl Node{
             }
         }
     }
+
+    ///Returns a string representation of the current node based on `OperationNotation::ascii()`.
+    pub fn to_ascii(&self) -> String{
+        self.print(&OperatorNotation::ascii())
+    }
 }
 
+///Returns a string representation of the current node based on `OperationNotation::default()`.
 impl ToString for Node{
     fn to_string(&self) -> String {
-        match self{
-            Self::Operator { denied, op, .. } => {
-                let mut s = String::new();
-                if *denied{
-                    s.push('¬');
-                }
-                match op{
-                    Operator::AND => s.push('&'),
-                    Operator::OR => s.push('∨'),
-                    Operator::CON => s.push_str("➞"),
-                    Operator::BICON => s.push_str("⟷"),
-                }
-
-                s
-            }
-            Self::Variable { denied, name, .. } => {
-                let mut s = String::new();
-                if *denied{
-                    s.push('¬');
-                }
-                s.push_str(name);
-                s
-            }
-            Self::Constant(b) => {
-                if *b{
-                    "TRUE".to_string()
-                }else{
-                    "FALSE".to_string()
-                }
-            }
-        }
+        self.print(&OperatorNotation::default())
     }
 }
 
