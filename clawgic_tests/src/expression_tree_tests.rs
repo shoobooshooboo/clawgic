@@ -334,8 +334,6 @@ mod test{
         assert!(tree.not().evaluate().unwrap());
     }
 
-//∧ ∨ ¬ ➞ ⟷ ⋅
-
     #[test_case("¬(A∧B)∨(C➞TRUE⟷E)", "~(A&B)v(C->TRUE<->E)" ; "mathematical")]
     #[test_case("¬(A⋅B)+(C➞TRUE⟷E)", "~(A&B)v(C->TRUE<->E)" ; "logic gates")]
     #[test_case("~(A*B)+(C->TRUE<->E)", "~(A&B)v(C->TRUE<->E)" ; "logic gates ascii")]
