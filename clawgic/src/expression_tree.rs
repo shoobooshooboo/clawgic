@@ -464,16 +464,25 @@ impl ExpressionTree{
     pub fn infix(&self) -> String{
         let mut infix = String::new();
         Self::infix_rec(&self.root, &mut infix);
+        if infix.starts_with('('){
+            infix.remove(0);
+            infix.pop();
+        }
         infix
     }
 
     /// Recursive helper function for `ExpressionTree::infix().`
     fn infix_rec(node: &Node, infix: &mut String){
         match node{
-            Node::Operator { denied: _, op: _, left, right } => {
+            Node::Operator { denied, op: _, left, right } => {
+                let mut op = node.to_string();
+                if *denied{
+                    infix.push('¬');
+                    op.remove(0);
+                }
                 infix.push('(');
                 Self::infix_rec(left, infix);
-                infix.push_str(&node.to_string());
+                infix.push_str(&op);
                 Self::infix_rec(right, infix);
                 infix.push(')');
             }

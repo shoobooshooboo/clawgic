@@ -98,12 +98,23 @@ mod test{
         assert_eq!(t.prefix(), expected);
     }
 
-    #[test_case("A&B", "(A&B)" ; "no expected changes")]
-    #[test_case("~(A&B)", "(¬A∨¬B)" ; "just demorgans")]
-    #[test_case("A->B", "(¬A∨B)" ; "just implication")]
-    #[test_case("~(A->B)", "(A&¬B)" ; "just ncon")]
-    #[test_case("A<->B", "((A&B)∨(¬A&¬B))" ; "just mat_eq")]
-    #[test_case("~(A&~B)v~C->~(D<->E)", "(((A&¬B)&C)∨((¬D&E)∨(D&¬E)))" ; "lots of stuff")]
+    #[test_case("A", "A" ; "no connectives")]
+    #[test_case("A&B", "A&B" ; "One connective")]
+    #[test_case("~(A&B)vC", "¬(A&B)∨C" ; "Two connectives")]
+    #[test_case("(A&B)vC->D", "((A&B)∨C)➞D" ; "Three connectives")]
+    #[test_case("(A&B)vC->(D<->E)", "((A&B)∨C)➞(D⟷E)" ; "four connectives")]
+    #[test_case("(A1&~B)v~C3->~(D<->E)", "((A1&¬B)∨¬C3)➞¬(D⟷E)" ; "four connectives with funny symbols")]
+    fn infix(expression: &str, expected: &str){
+        let t = ExpressionTree::new(expression).unwrap();
+        assert_eq!(t.infix(), expected);
+    }
+
+    #[test_case("A&B", "A&B" ; "no expected changes")]
+    #[test_case("~(A&B)", "¬A∨¬B" ; "just demorgans")]
+    #[test_case("A->B", "¬A∨B" ; "just implication")]
+    #[test_case("~(A->B)", "A&¬B" ; "just ncon")]
+    #[test_case("A<->B", "(A&B)∨(¬A&¬B)" ; "just mat_eq")]
+    #[test_case("~(A&~B)v~C->~(D<->E)", "((A&¬B)&C)∨((¬D&E)∨(D&¬E))" ; "lots of stuff")]
     fn monotenize(expression: &str, expected: &str){
         let mut t = ExpressionTree::new(expression).unwrap();
         t.monotenize();
