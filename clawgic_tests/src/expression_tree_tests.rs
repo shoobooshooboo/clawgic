@@ -3,7 +3,7 @@ mod test{
     use std::collections::HashMap;
 
     use test_case::test_case;
-    use clawgic::expression_tree::{ExpressionTree, ExpressionTreeError};
+    use clawgic::{expression_tree::{ExpressionTree, ExpressionTreeError}, operator_notation::OperatorNotation};
 
     #[test_case("A" ; "single variable")]
     #[test_case("A&B" ; "one connective")]
@@ -402,5 +402,18 @@ mod test{
         let aux = ExpressionTree::new(aux).unwrap();
 
         assert_eq!(tree.is_satisfiable_with(&aux), expected);
+    }
+
+    #[test]
+    fn notation_printing(){
+        let tree = ExpressionTree::new("(A1&~B)v~C->(D<->E)").unwrap();
+        let mut notation = OperatorNotation::bits_ascii();
+        assert_eq!(tree.infix(Some(&notation)), "((A1*~B)+~C)->(D<->E)", "1");
+        notation.set_and("&&".to_string());
+        notation.set_neg("?".to_string());
+        notation.set_or("||".to_string());
+        notation.set_con("0-0".to_string());
+        notation.set_bicon(":p".to_string());
+        assert_eq!(tree.infix(Some(&notation)), "((A1&&?B)||?C)0-0(D:pE)", "2");
     }
 }

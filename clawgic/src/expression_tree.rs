@@ -452,7 +452,7 @@ impl ExpressionTree{
 
     /// Recurseive helper function for `ExpressionTree::prefix().`
     fn prefix_rec(node: &Node, prefix: &mut String, notation: &OperatorNotation){
-        prefix.push_str(&node.to_string());
+        prefix.push_str(&node.print(notation));
         match node{
             Node::Operator { denied: _, op: _, left, right } => {
                 Self::prefix_rec(left, prefix, notation);
@@ -466,6 +466,7 @@ impl ExpressionTree{
     pub fn infix(&self, notation: Option<&OperatorNotation>) -> String{
         let mut infix = String::new();
         Self::infix_rec(&self.root, &mut infix, notation.unwrap_or(&OperatorNotation::default()));
+        //remove outer-most parenthesis
         if infix.starts_with('('){
             infix.remove(0);
             infix.pop();
@@ -479,7 +480,7 @@ impl ExpressionTree{
             Node::Operator { denied, op: _, left, right } => {
                 let mut op = node.print(notation);
                 if *denied{
-                    infix.push('¬');
+                    infix.push_str(notation.neg());
                     op.remove(0);
                 }
                 infix.push('(');
@@ -488,7 +489,7 @@ impl ExpressionTree{
                 Self::infix_rec(right, infix, notation);
                 infix.push(')');
             }
-            _ => infix.push_str(&node.to_string()),
+            _ => infix.push_str(&node.print(notation)),
         }
     }
 

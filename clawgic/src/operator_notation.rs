@@ -92,8 +92,8 @@ impl OperatorNotation{
     /// * conjunction *
     /// * disjunction +
     /// * negation ~
-    /// * conditional ➞
-    /// * biconditional ⟷
+    /// * conditional ->
+    /// * biconditional <->
     pub fn bits_ascii() -> Self{
         Self { map: [
             "~".to_string(),

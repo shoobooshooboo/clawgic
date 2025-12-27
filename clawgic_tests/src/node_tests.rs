@@ -81,6 +81,19 @@ mod test{
         assert_eq!(node.to_string(), expected);
     }
 
+    #[test_case(Node::Variable{denied: false, name: "A".to_string()}, "A".to_string() ; "Variable")]
+    #[test_case(Node::Variable{denied: true, name: "A".to_string()}, "~A".to_string() ; "Denied Variable")]
+    #[test_case(Node::Constant(true), "TRUE".to_string() ; "True Constant")]
+    #[test_case(Node::Constant(false), "FALSE".to_string() ; "False Constant")]
+    #[test_case(Node::Operator{denied: false, op: Operator::AND, left: Box::new(Node::Constant(true)), right: Box::new(Node::Constant(true))}, "&".to_string() ; "And Operator")]
+    #[test_case(Node::Operator{denied: true, op: Operator::AND, left: Box::new(Node::Constant(true)), right: Box::new(Node::Constant(true))}, "~&".to_string() ; "Denied Operator")]
+    #[test_case(Node::Operator{denied: false, op: Operator::OR, left: Box::new(Node::Constant(true)), right: Box::new(Node::Constant(true))}, "v".to_string() ; "Or Operator")]
+    #[test_case(Node::Operator{denied: false, op: Operator::CON, left: Box::new(Node::Constant(true)), right: Box::new(Node::Constant(true))}, "->".to_string() ; "Con Operator")]
+    #[test_case(Node::Operator{denied: false, op: Operator::BICON, left: Box::new(Node::Constant(true)), right: Box::new(Node::Constant(true))}, "<->".to_string() ; "Bicon Operator")]
+    fn to_ascii(node: Node, expected: String){
+        assert_eq!(node.to_ascii(), expected);
+    }
+
     #[test_case(
         Node::Operator{denied: true, op: Operator::AND, left: Box::new(Node::Constant(true)), right: Box::new(Node::Variable{denied: false, name: "A".to_string()})},
         Node::Operator{denied: false, op: Operator::OR, left: Box::new(Node::Constant(false)), right: Box::new(Node::Variable{denied: true, name: "A".to_string()})}
