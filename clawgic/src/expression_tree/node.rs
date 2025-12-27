@@ -271,9 +271,9 @@ impl Node{
             }
             Self::Constant(b) => {
                 if *b{
-                    "True".to_string()
+                    "TRUE".to_string()
                 }else{
-                    "False".to_string()
+                    "FALSE".to_string()
                 }
             }
         }

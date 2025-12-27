@@ -95,7 +95,7 @@ mod test{
     #[test_case("(A1&~B)v~C3->~(D<->E)", "➞∨&A1¬B¬C3¬⟷DE" ; "four connectives with funny symbols")]
     fn prefix(expression: &str, expected: &str){
         let t = ExpressionTree::new(expression).unwrap();
-        assert_eq!(t.prefix(), expected);
+        assert_eq!(t.prefix(None), expected);
     }
 
     #[test_case("A", "A" ; "no connectives")]
@@ -106,7 +106,7 @@ mod test{
     #[test_case("(A1&~B)v~C3->~(D<->E)", "((A1&¬B)∨¬C3)➞¬(D⟷E)" ; "four connectives with funny symbols")]
     fn infix(expression: &str, expected: &str){
         let t = ExpressionTree::new(expression).unwrap();
-        assert_eq!(t.infix(), expected);
+        assert_eq!(t.infix(None), expected);
     }
 
     #[test_case("A&B", "A&B" ; "no expected changes")]
@@ -119,7 +119,7 @@ mod test{
         let mut t = ExpressionTree::new(expression).unwrap();
         t.monotenize();
 
-        assert_eq!(t.infix(), expected);
+        assert_eq!(t.infix(None), expected);
     }
 
     #[test]
@@ -132,7 +132,7 @@ mod test{
         let e = ExpressionTree::new("E").unwrap();
         let expression = a.and(b.or(c).con(d).bicon(e)).not();
 
-        assert_eq!(expression.infix(), expected.infix());
+        assert_eq!(expression.infix(None), expected.infix(None));
     }
 
     #[test]
@@ -145,7 +145,7 @@ mod test{
         let e = ExpressionTree::new("E").unwrap();
         let expression = (((!a | b) & c) >> d) ^ e;
 
-        assert_eq!(expression.infix(), expected.infix());
+        assert_eq!(expression.infix(None), expected.infix(None));
     }
 
     #[test]
@@ -162,7 +162,7 @@ mod test{
         expression >>= d;
         expression ^= e;
 
-        assert_eq!(expression.infix(), expected.infix());
+        assert_eq!(expression.infix(None), expected.infix(None));
     }
 
     #[test_case("A&B", "B&A", true ; "swapped operands")]
@@ -321,7 +321,7 @@ mod test{
 
         tree.replace_variables(&vars);
 
-        assert_eq!(tree.infix(), expected.infix());
+        assert_eq!(tree.infix(None), expected.infix(None));
     }
 
     #[test]
@@ -357,8 +357,8 @@ mod test{
         let new = ExpressionTree::new(new).unwrap();
         let expected = ExpressionTree::new(expected).unwrap();
         tree.replace_expression(&old, &new);
-        println!("{}", tree.prefix());
-        println!("{}", expected.prefix());
+        println!("{}", tree.prefix(None));
+        println!("{}", expected.prefix(None));
 
         assert!(tree.lit_eq(&expected));
     }

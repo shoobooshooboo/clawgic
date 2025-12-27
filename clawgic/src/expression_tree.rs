@@ -7,6 +7,8 @@ use node::operator::Operator;
 use std::cell::Cell;
 use std::collections::HashMap;
 
+use crate::operator_notation::OperatorNotation;
+
 /// All the errors that can occur in making and managing an `ExpressionTree`. 
 #[derive(Debug, PartialEq, Eq)]
 pub enum ExpressionTreeError{
@@ -442,28 +444,28 @@ impl ExpressionTree{
     }
 
     /// Gets the prefix representation of the tree.
-    pub fn prefix(&self) -> String{
+    pub fn prefix(&self, notation: Option<&OperatorNotation>) -> String{
         let mut prefix = String::new();
-        Self::prefix_rec(&self.root, &mut prefix);
+        Self::prefix_rec(&self.root, &mut prefix, notation.unwrap_or(&OperatorNotation::default()));
         prefix
     }
 
     /// Recurseive helper function for `ExpressionTree::prefix().`
-    fn prefix_rec(node: &Node, prefix: &mut String){
+    fn prefix_rec(node: &Node, prefix: &mut String, notation: &OperatorNotation){
         prefix.push_str(&node.to_string());
         match node{
             Node::Operator { denied: _, op: _, left, right } => {
-                Self::prefix_rec(left, prefix);
-                Self::prefix_rec(right, prefix);
+                Self::prefix_rec(left, prefix, notation);
+                Self::prefix_rec(right, prefix, notation);
             }
             _ => (),
         }
     }
 
     /// Gets the infix representation of the tree.
-    pub fn infix(&self) -> String{
+    pub fn infix(&self, notation: Option<&OperatorNotation>) -> String{
         let mut infix = String::new();
-        Self::infix_rec(&self.root, &mut infix);
+        Self::infix_rec(&self.root, &mut infix, notation.unwrap_or(&OperatorNotation::default()));
         if infix.starts_with('('){
             infix.remove(0);
             infix.pop();
@@ -472,18 +474,18 @@ impl ExpressionTree{
     }
 
     /// Recursive helper function for `ExpressionTree::infix().`
-    fn infix_rec(node: &Node, infix: &mut String){
+    fn infix_rec(node: &Node, infix: &mut String, notation: &OperatorNotation){
         match node{
             Node::Operator { denied, op: _, left, right } => {
-                let mut op = node.to_string();
+                let mut op = node.print(notation);
                 if *denied{
                     infix.push('¬');
                     op.remove(0);
                 }
                 infix.push('(');
-                Self::infix_rec(left, infix);
+                Self::infix_rec(left, infix, notation);
                 infix.push_str(&op);
-                Self::infix_rec(right, infix);
+                Self::infix_rec(right, infix, notation);
                 infix.push(')');
             }
             _ => infix.push_str(&node.to_string()),
@@ -633,7 +635,7 @@ impl ExpressionTree{
     ///checks if the two expressions are literally exactly the same (ignoring double negations).
     pub fn lit_eq(&self, other: &Self) -> bool{
         //this can be optimized later, but for now, it's fine.
-        self.prefix() == other.prefix()
+        self.prefix(None) == other.prefix(None)
     }
 
     ///checks if the two expressions are syntactically the same (one can be transformed into the other with primitive logic rules). Very expensive function.
