@@ -661,6 +661,11 @@ impl ExpressionTree{
         false
     }
 
+    ///checks if the expression is satisfiable given the auxiliary expression. Currently works on expressions with up to 127 variables. Very expensive function.
+    pub fn is_satisfiable_with(&self, aux: &ExpressionTree) -> bool{
+        Self::is_satisfiable(&(self.clone() & aux.clone()))
+    }
+
     ///returns a set of variables that satisfies the expression if one exists. Very expensive function.
     pub fn satisfy_one(&self) -> Option<HashMap<String, bool>>{
         let mut vars: HashMap<String, bool> = self.vars.iter().map(|(n, _)| (n.to_owned(), false)).collect();
@@ -680,6 +685,11 @@ impl ExpressionTree{
         }
 
         None
+    }
+
+    ///returns a set of variables that satisfies the expression and the auxiliary expression if one exists. Very expensive function.
+    pub fn satisfy_one_with(&self, aux: &ExpressionTree) -> Option<HashMap<String, bool>>{
+        Self::satisfy_one(&(self.clone() & aux.clone()))
     }
 
     ///returns a vector of all sets of variables that satisfy the expression. Extremely expensive function.
@@ -704,6 +714,11 @@ impl ExpressionTree{
         maps
     }
 
+    ///returns a vector of all sets of variables that satisfy the expression and the auxiliary expression. Extremely expensive function.
+    pub fn satisfy_all_with(&self, aux: &ExpressionTree) -> Vec<HashMap<String, bool>>{
+        Self::satisfy_all(&(self.clone() & aux.clone()))
+    }
+
     ///returns the total number of ways the expression can be satisfied. very expensive function.
     pub fn satisfy_count(&self) -> u128{
         let mut vars: HashMap<String, bool> = self.vars.iter().map(|(n, _)| (n.to_owned(), false)).collect();
@@ -724,6 +739,11 @@ impl ExpressionTree{
         }
 
         count
+    }
+
+    ///returns the total number if ways the expression can be satisfied with the auxiliary expression. very expensive function.
+    pub fn satisfy_count_with(&self, aux: &ExpressionTree) -> u128{
+        Self::satisfy_count(&(self.clone() & aux.clone()))        
     }
 
     ///returns whether the expression is a tautology (always true). Very expensive function.
@@ -747,6 +767,11 @@ impl ExpressionTree{
         true
     }
 
+    ///returns whether the expression is tautological with the auxiliary expression. Very expensive function.
+    pub fn is_tautology_with(&self, aux: &ExpressionTree) -> bool{
+        Self::is_inconsistency(&(self.clone() & aux.clone()))
+    }
+
     ///returns whether the expression is an inconsistency (always false). Very expensive function.
     pub fn is_inconsistency(&self) -> bool{
         let mut vars: HashMap<String, bool> = self.vars.iter().map(|(n, _)| (n.to_owned(), false)).collect();
@@ -766,6 +791,11 @@ impl ExpressionTree{
         }
 
         true
+    }
+
+    ///returns whether the expression is inconsistent with the auxiliary expression. Very expensive function.
+    pub fn is_inconsistency_with(&self, aux: &ExpressionTree) -> bool{
+        Self::is_inconsistency(&(self.clone() & aux.clone()))
     }
 
     ///returns whether the expression is a contingency (sometimes true, sometimes false). Very expensive function.
@@ -795,6 +825,11 @@ impl ExpressionTree{
         }
 
         false
+    }
+
+    ///returns whether the expression is contingent with the auxiliary expression. Very expensive function.
+    pub fn is_contingency_with(&self, aux: &ExpressionTree) -> bool{
+        Self::is_contingency(&(self.clone() & aux.clone()))
     }
 
     /// Negates the expression tree; returns a mutable reference.
