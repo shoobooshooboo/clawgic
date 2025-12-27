@@ -383,6 +383,15 @@ mod test{
         assert_eq!(tree.evaluate().unwrap(), expected);
     }
 
-    // #[test_case]
-    // fn
+    //this (as well as all the tests for the original functions) should cover all of the "_with" functions 
+    #[test_case("Av~A->B", "Bv~B", true ; "tautology")]
+    #[test_case("A&B", "B&~A", false ; "inconsistency")]
+    #[test_case("A&B", "A", true ; "contingency")]
+    #[test_case("A", "B&!B", false ; "completely irrelevent")]
+    fn is_satisfiable_with(expr: &str, aux: &str, expected: bool){
+        let tree = ExpressionTree::new(expr).unwrap();
+        let aux = ExpressionTree::new(aux).unwrap();
+
+        assert_eq!(tree.is_satisfiable_with(&aux), expected);
+    }
 }
