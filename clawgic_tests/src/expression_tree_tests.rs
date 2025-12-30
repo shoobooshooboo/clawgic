@@ -431,4 +431,18 @@ mod test{
 
         assert!(t1.lit_eq(&t2));
     }
+
+    #[test_case("Av~A", ExpressionTree::or, true; "tautology")]
+    #[test_case("A&~A", ExpressionTree::and, false; "inconsistency")]
+    #[test_case("A", ExpressionTree::and, true; "contingency")]
+    #[ignore]
+    fn large_tree_sat<F>(center: &str, func: F, expected: bool)
+        where F: Fn(ExpressionTree, ExpressionTree) -> ExpressionTree{
+        let mut tree = ExpressionTree::new(center).unwrap();
+        for i in 0..128{
+            tree = func(tree, ExpressionTree::new(&("A".to_string() + &i.to_string())).unwrap());
+        }
+
+        assert_eq!(tree.is_satisfiable(), expected);
+    }
 }

@@ -111,7 +111,7 @@ assert!(taut.is_tautology());
 assert!(!taut.is_inconsistency());
 assert!(!taut.is_contingency());
 assert!(taut.is_satisfiable());
-assert_eq!(taut.satisfy_count(), 2);
+assert_eq!(taut.satisfy_count()[0], 2);
 assert_eq!(taut.satisfy_all().len(), 2);
 assert!(taut.evaluate_with_vars(taut.satisfy_one().unwrap()));
 
@@ -121,7 +121,7 @@ assert!(!inco.is_tautology());
 assert!(inco.is_inconsistency());
 assert!(!inco.is_contingency());
 assert!(!inco.is_satisfiable());
-assert_eq!(inco.satisfy_count(), 0);
+assert_eq!(inco.satisfy_count()[0], 0);
 assert_eq!(taut.satisfy_all().len(), 0);
 assert!(inco.satisfy_one().is_none());
 
@@ -131,7 +131,7 @@ assert!(!cont.is_tautology());
 assert!(!cont.is_inconsistency());
 assert!(cont.is_contingency());
 assert!(cont.is_satisfiable());
-assert_eq!(cont.satisfy_count(), 1);
+assert_eq!(cont.satisfy_count()[0], 1);
 assert_eq!(taut.satisfy_all().len(), 1);
 assert!(cont.evaluate_with_vars(cont.satisfy_one().unwrap()));
 ```
