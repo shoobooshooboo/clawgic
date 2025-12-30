@@ -769,11 +769,10 @@ impl ExpressionTree{
         true
     }
 
-    //OPTIMIZE: make it work recursively to directly tell if the trees are the same.
     ///checks if the two expressions are literally exactly the same (ignoring double negations).
     pub fn lit_eq(&self, other: &Self) -> bool{
         //this can be optimized later, but for now, it's fine.
-        self.prefix(None) == other.prefix(None)
+        self.root == other.root
     }
 
     ///checks if the two expressions are syntactically the same (one can be transformed into the other with primitive logic rules). Very expensive function.
