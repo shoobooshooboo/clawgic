@@ -257,12 +257,12 @@ impl ExpressionTree{
                 }
                 shells.push(Shell::Variable(denied, expression[0..chars_consumed].to_string()));
             }
-            else if cur_char == '&' || cur_char == '*' || cur_char == '∧' || cur_char == '⋅' ||
+            else if cur_char == '&' || cur_char == '*' || cur_char == '∧' || cur_char == '^' || cur_char == '⋅' ||
                     cur_char == 'v' || cur_char == '∨' || cur_char == '|' || cur_char == '+' || 
                     cur_char == '<' || cur_char == '-' || cur_char == '>' || cur_char == '➞' || cur_char == '⟷' {
                 let op: Operator;
                 match cur_char{
-                    '&' | '*' | '∧' | '⋅' => op = Operator::AND,
+                    '&' | '*' | '∧' | '^' | '⋅' => op = Operator::AND,
                     'v' | '|' | '+' | '∨' => op = Operator::OR,
                     '➞' => op = Operator::CON,
                     '⟷' => op = Operator::BICON,

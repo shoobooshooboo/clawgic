@@ -35,7 +35,7 @@ impl OperatorNotation{
 
     /// Constructs the `OperatorNotation` based on mathematical notation.
     /// 
-    /// * conjunction ^
+    /// * conjunction ∧
     /// * disjunction ∨
     /// * negation ¬
     /// * conditional ➞
@@ -43,7 +43,7 @@ impl OperatorNotation{
     pub fn mathematical() -> Self{
         Self { map: [
             "¬".to_string(),
-            "^".to_string(),
+            "∧".to_string(),
             "∨".to_string(),
             "➞".to_string(),
             "⟷".to_string(),

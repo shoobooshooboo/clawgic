@@ -4,16 +4,31 @@ A rust engine for Sentential (Propositional) Logic. Will later be expanded to de
 ## Things you can do right now:
 
 The main data structure you'll be using is the `ExpressionTree`. `ExpressionTree`s represent a boolean expression with constants, variables, and operators. The operators currently supported are the following:
-* conjunction (&)
-* disjunction (v),
-* conditional (->),
-* biconditional (<->)
-* negation (~)
+* conjunction (&, ^, ∧, *, ⋅)
+* disjunction (v, ∨, +, |),
+* conditional (->, ➞),
+* biconditional (<->, ⟷)
+* negation (~, ¬, !)
+
+You can also make and use your own set of operators with the `OperatorNotation` struct.
+```rs
+//There's several hard-coded notations like ascii(), mathematical(), bits(), and boolean()
+//which represent many common standard notation.
+let mut notation = OperatorNotation::default();
+assert_eq!(notation.and(), "&");
+notation.set_and("#".to_string());
+assert_eq!(notation.and(), "#");
+```
 
 # Constructing an `ExpressionTree`
 There are a few ways that you can construct an `ExpressionTree`. The first and simplest is with `ExpressionTree::new()`.
 ```rs
+//without notation.
 let mut tree = ExpressionTree::new("~A&B1->Cv~(D42<->E)").unwrap();
+//with a notation
+let mut notation = OperatorNotation::ascii();
+notation.set_and("'literally just and'".to_string());
+let tree = ExpressionTree::new_with_notation("A 'literally just and' B", &notation).unwrap();
 ```
 (It's worth noting that all variables must be a capital letter followed by 0 or more digits)
 
@@ -98,10 +113,28 @@ vars.insert("C", true);
 assert!(tree.evaluate_with_vars(vars));
 ```
 
+# printing
+Printing functions are pretty simple. The most useful one is probably `ExpressionTree::infix()` (there's also `prefix()`) which just gives you string representation of the infix expression.
+```rs
+//without notation
+let tree = ExpressionTree::new("A&B->Cv~D").unwrap();
+assert_eq!(tree.infix(None), "(A&B)->(Cv~D)");
+//with notation
+let mut notation = OperatorNotation::default();
+notation.set_and("and".to_string());
+notation.set_neg("not".to_string());
+notation.set_or("or".to_string());
+notation.set_con("if".to_string());
+//this would make con a substring of bicon which leads to ambiguity. illegal. 
+//notation.set_bicon("iff".to_string());
+assert_eq!(tree.infix(Some(&notation)), "(AandB)if(CornotD)");
+
+```
+
 # analyzing
 Next, we have ways of analyzing individual expressions.
 
-At the current moment, most of these functions are extremely unoptimized and will run pretty slow. You shouldn't really notice unless you're really pushing this package to it's limits (it's current limits being comparing two functions with a combined 127 distinct variables).
+At the current moment, most of these functions are extremely unoptimized and will run pretty slow. You shouldn't really notice unless you're really pushing this package to it's limits.
 
 Here are some functions for analyzing a single expression:
 ```rs
