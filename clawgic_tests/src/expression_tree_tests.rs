@@ -263,7 +263,7 @@ mod test{
     fn satisfy_count(expr: &str, count: u128){
         let tree = ExpressionTree::new(expr).unwrap();
 
-        assert_eq!(tree.satisfy_count(), count);
+        assert_eq!(tree.satisfy_count()[0], count);
     }
 
     #[test_case("Av~A", true ; "tautology")]

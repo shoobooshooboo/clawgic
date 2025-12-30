@@ -739,34 +739,9 @@ impl ExpressionTree{
         self
     }
 
-    ///checks if the two expressions are logically equivalent (produce the same truth tables). Very expensive function. 
-    /// 
-    /// Currently supports up to 127 different variables.
+    ///checks if the two expressions are logically equivalent (produce the same truth tables). Very expensive function.
     pub fn log_eq(&self, other: &Self) -> bool{
-        let mut vars = HashMap::new();
-
-        for (name, _) in self.vars.iter(){
-            vars.insert(name.clone(), false);
-        }
-        for (name, _) in other.vars.iter(){
-            vars.insert(name.clone(), false);
-        }
-
-        let max: u128 = 1 << vars.len();
-        for cur in 0..max{
-            //this loop is technically const time, since the function currently only supports up to 127 variables.
-            for (i, (_, b)) in vars.iter_mut().enumerate(){
-                let i = i as u8;
-                *b = cur >> i & 1 == 1;
-            }
-            
-
-            if self.evaluate_with_vars(&vars) != other.evaluate_with_vars(&vars){
-                return false;
-            }
-        }
-
-        true
+        !Self::is_satisfiable(&!self.clone().bicon(other.clone()))
     }
 
     ///checks if the two expressions are literally exactly the same (ignoring double negations).
@@ -788,28 +763,29 @@ impl ExpressionTree{
         self.log_eq(other)
     }
 
-    ///checks if the expression is satisfiable. Currently works on expressions with up to 127 variables. Very expensive function.
+    ///checks if the expression is satisfiable. Very expensive function.
     pub fn is_satisfiable(&self) -> bool{
         let mut vars: HashMap<String, bool> = self.vars.iter().map(|(n, _)| (n.to_owned(), false)).collect();
 
-        let max: u128 = 1 << vars.len();
-        for cur in 0..max{
-            //this loop is technically const time, since the function currently only supports up to 127 variables.
-            for (i, (_, b)) in vars.iter_mut().enumerate(){
-                let i = i as u8;
-                *b = cur >> i & 1 == 1;
-            }
-            
-            //since the vars are gotten directly from the tree, this should never result in an uninitialized variable.
+        'outer: loop{
             if self.evaluate_with_vars(&vars).unwrap(){
                 return true;
             }
+
+            for (_, b) in vars.iter_mut(){
+                *b = !*b;
+                if *b{
+                    continue 'outer;
+                }
+            }
+
+            break;
         }
 
         false
     }
 
-    ///checks if the expression is satisfiable given the auxiliary expression. Currently works on expressions with up to 127 variables. Very expensive function.
+    ///checks if the expression is satisfiable given the auxiliary expression. Very expensive function.
     pub fn is_satisfiable_with(&self, aux: &ExpressionTree) -> bool{
         Self::is_satisfiable(&(self.clone() & aux.clone()))
     }
@@ -818,18 +794,19 @@ impl ExpressionTree{
     pub fn satisfy_one(&self) -> Option<HashMap<String, bool>>{
         let mut vars: HashMap<String, bool> = self.vars.iter().map(|(n, _)| (n.to_owned(), false)).collect();
 
-        let max: u128 = 1 << vars.len();
-        for cur in 0..max{
-            //this loop is technically const time, since the function currently only supports up to 127 variables.
-            for (i, (_, b)) in vars.iter_mut().enumerate(){
-                let i = i as u8;
-                *b = cur >> i & 1 == 1;
-            }
-            
-            //since the vars are gotten directly from the tree, this should never result in an uninitialized variable.
+        'outer: loop{
             if self.evaluate_with_vars(&vars).unwrap(){
                 return Some(vars);
             }
+
+            for (_, b) in vars.iter_mut(){
+                *b = !*b;
+                if *b{
+                    continue 'outer;
+                }
+            }
+
+            break;
         }
 
         None
@@ -845,18 +822,19 @@ impl ExpressionTree{
         let mut vars: HashMap<String, bool> = self.vars.iter().map(|(n, _)| (n.to_owned(), false)).collect();
         let mut maps = Vec::new();
 
-        let max: u128 = 1 << vars.len();
-        for cur in 0..max{
-            //this loop is technically const time, since the function currently only supports up to 127 variables.
-            for (i, (_, b)) in vars.iter_mut().enumerate(){
-                let i = i as u8;
-                *b = cur >> i & 1 == 1;
-            }
-            
-            //since the vars are gotten directly from the tree, this should never result in an uninitialized variable.
+        'outer: loop{
             if self.evaluate_with_vars(&vars).unwrap(){
                 maps.push(vars.clone());
             }
+
+            for (_, b) in vars.iter_mut(){
+                *b = !*b;
+                if *b{
+                    continue 'outer;
+                }
+            }
+
+            break;
         }
 
         maps
@@ -868,29 +846,37 @@ impl ExpressionTree{
     }
 
     ///returns the total number of ways the expression can be satisfied. very expensive function.
-    pub fn satisfy_count(&self) -> u128{
+    pub fn satisfy_count(&self) -> Vec<u128>{
         let mut vars: HashMap<String, bool> = self.vars.iter().map(|(n, _)| (n.to_owned(), false)).collect();
-        let mut count: u128 = 0;
+        let len = 1 + vars.len() / 128;
+        let mut count = vec![0 ; len];
 
-        let max: u128 = 1 << vars.len();
-        for cur in 0..max{
-            //this loop is technically const time, since the function currently only supports up to 127 variables.
-            for (i, (_, b)) in vars.iter_mut().enumerate(){
-                let i = i as u8;
-                *b = cur >> i & 1 == 1;
-            }
-            
-            //since the vars are gotten directly from the tree, this should never result in an uninitialized variable.
+        'outer: loop{
             if self.evaluate_with_vars(&vars).unwrap(){
-                count += 1;
+                for c in count.iter_mut(){
+                    if *c != std::u128::MAX{
+                        *c += 1;
+                        break;
+                    }
+                    *c = 0;
+                }
             }
+
+            for (_, b) in vars.iter_mut(){
+                *b = !*b;
+                if *b{
+                    continue 'outer;
+                }
+            }
+
+            break;
         }
 
         count
     }
 
     ///returns the total number if ways the expression can be satisfied with the auxiliary expression. very expensive function.
-    pub fn satisfy_count_with(&self, aux: &ExpressionTree) -> u128{
+    pub fn satisfy_count_with(&self, aux: &ExpressionTree) -> Vec<u128>{
         Self::satisfy_count(&(self.clone() & aux.clone()))        
     }
 
@@ -898,18 +884,19 @@ impl ExpressionTree{
     pub fn is_tautology(&self) -> bool{
         let mut vars: HashMap<String, bool> = self.vars.iter().map(|(n, _)| (n.to_owned(), false)).collect();
 
-        let max: u128 = 1 << vars.len();
-        for cur in 0..max{
-            //this loop is technically const time, since the function currently only supports up to 127 variables.
-            for (i, (_, b)) in vars.iter_mut().enumerate(){
-                let i = i as u8;
-                *b = cur >> i & 1 == 1;
-            }
-            
-            //since the vars are gotten directly from the tree, this should never result in an uninitialized variable.
+        'outer: loop{
             if !self.evaluate_with_vars(&vars).unwrap(){
                 return false;
             }
+
+            for (_, b) in vars.iter_mut(){
+                *b = !*b;
+                if *b{
+                    continue 'outer;
+                }
+            }
+
+            break;
         }
 
         true
@@ -924,18 +911,19 @@ impl ExpressionTree{
     pub fn is_inconsistency(&self) -> bool{
         let mut vars: HashMap<String, bool> = self.vars.iter().map(|(n, _)| (n.to_owned(), false)).collect();
 
-        let max: u128 = 1 << vars.len();
-        for cur in 0..max{
-            //this loop is technically const time, since the function currently only supports up to 127 variables.
-            for (i, (_, b)) in vars.iter_mut().enumerate(){
-                let i = i as u8;
-                *b = cur >> i & 1 == 1;
-            }
-            
-            //since the vars are gotten directly from the tree, this should never result in an uninitialized variable.
+        'outer: loop{
             if self.evaluate_with_vars(&vars).unwrap(){
                 return false;
             }
+
+            for (_, b) in vars.iter_mut(){
+                *b = !*b;
+                if *b{
+                    continue 'outer;
+                }
+            }
+
+            break;
         }
 
         true
@@ -952,15 +940,7 @@ impl ExpressionTree{
         let mut can_be_false = false;
         let mut can_be_true = false;
 
-        let max: u128 = 1 << vars.len();
-        for cur in 0..max{
-            //this loop is technically const time, since the function currently only supports up to 127 variables.
-            for (i, (_, b)) in vars.iter_mut().enumerate(){
-                let i = i as u8;
-                *b = cur >> i & 1 == 1;
-            }
-            
-            //since the vars are gotten directly from the tree, this should never result in an uninitialized variable.
+        'outer: loop{
             if self.evaluate_with_vars(&vars).unwrap(){
                 can_be_true = true;
             }else{
@@ -970,6 +950,15 @@ impl ExpressionTree{
             if can_be_false && can_be_true{
                 return true;
             }
+
+            for (_, b) in vars.iter_mut(){
+                *b = !*b;
+                if *b{
+                    continue 'outer;
+                }
+            }
+
+            break;
         }
 
         false
