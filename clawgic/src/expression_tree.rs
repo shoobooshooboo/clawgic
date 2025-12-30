@@ -67,6 +67,141 @@ impl ExpressionTree{
         })
     }
 
+    /// Constructs a new expression tree given a string representation of an infix logical expression and an 
+    /// `OperatorNotation` detailing the accepted operators.
+    pub fn new_with_notation(expression: &str, notation: &OperatorNotation) -> Result<Self, ExpressionTreeError>{
+        let shells = &mut Self::shunting_yard_with_notation(expression, notation)?;
+        let root = Self::construct_tree(shells)?;
+        let vars = Self::create_vars(&root, HashMap::new());
+        if !shells.is_empty(){
+            return Err(ExpressionTreeError::NotEnoughOperators);
+        }
+        Ok(Self{
+            vars,
+            root,
+            value: Cell::new(None),
+        })
+    }
+
+    /// Takes a string representation of an infix logical expression and an `OperatorNotation` and produces a Vec of `Shell`s.
+    fn shunting_yard_with_notation(mut expression: &str, notation: &OperatorNotation) -> Result<Vec<Shell>, ExpressionTreeError>{
+        expression = expression.trim();
+        let mut shells = Vec::<Shell>::new();
+        let mut operators = Vec::<Shell>::new();
+
+        while !expression.is_empty(){
+            expression = expression.trim_start();
+            let mut denied = false;
+            while expression.starts_with(notation.neg()){
+                denied = !denied;
+                expression = &expression[notation.neg().as_bytes().len()..];
+            }
+
+            if expression.starts_with("TRUE"){
+                shells.push(Shell::Constant(!denied));
+                expression = &expression[4..];
+                continue;
+            }else if expression.starts_with("FALSE"){
+                shells.push(Shell::Constant(denied));
+                expression = &expression[5..];
+                continue;
+            }
+
+            if denied{
+                operators.push(Shell::Tilde);
+            }
+
+            let mut chars = expression.chars();
+            let mut cur_char = match chars.next(){
+                Some(c) => c,
+                None => return Err(ExpressionTreeError::InvalidExpression),
+            };
+            let mut chars_consumed = cur_char.len_utf8();
+
+            if cur_char.is_uppercase(){
+                loop{
+                    cur_char = match chars.next(){
+                        Some(c) => c,
+                        None => break,
+                    };
+                    if !cur_char.is_numeric(){
+                        break;
+                    }
+                    chars_consumed += cur_char.len_utf8();
+                }
+                if denied{
+                    operators.pop();
+                }
+                shells.push(Shell::Variable(denied, expression[0..chars_consumed].to_string()));
+            }
+            else if expression.starts_with(notation.and()) || expression.starts_with(notation.or()) || 
+                    expression.starts_with(notation.con()) || expression.starts_with(notation.bicon()){
+                let op: Operator = 
+                    if expression.starts_with(notation.and()) {chars_consumed += notation.and().as_bytes().len(); Operator::AND} 
+                    else if expression.starts_with(notation.or()) {chars_consumed += notation.or().as_bytes().len(); Operator::OR}
+                    else if expression.starts_with(notation.con()) {chars_consumed += notation.con().as_bytes().len(); Operator::CON}
+                    else /*if expression.starts_with(notation.bicon())*/{chars_consumed += notation.bicon().as_bytes().len(); Operator::BICON};
+                    
+                match operators.last(){
+                    None => operators.push(Shell::Operator(false, op)),
+                    Some(_) => {
+                        while let Some(Shell::Operator(_, o)) = operators.last(){
+                            if o.precedence() < op.precedence(){
+                                break;
+                            }else if o.precedence() == op.precedence(){
+                                return Err(ExpressionTreeError::AmbiguousExpression);
+                            }
+                            shells.push(operators.pop().unwrap());
+                        }
+                        if let Some(Shell::Tilde) = operators.last(){
+                            denied = true;
+                            operators.pop();
+                        }
+                        operators.push(Shell::Operator(denied, op));
+                    },
+                }
+            }
+            else if cur_char == '('{
+                operators.push(Shell::Parentheses);
+            }
+            else if cur_char == ')'{
+                while operators.last().is_some_and(|op| !op.is_parentheses()){
+                    shells.push(operators.pop().unwrap());
+                }
+                if operators.pop().is_none_or(|x| !x.is_parentheses()){
+                    return Err(ExpressionTreeError::InvalidParentheses);
+                }
+                if operators.last().is_some_and(|x| x.is_tilde()){
+                    operators.pop();
+                    match shells.pop(){
+                        Some(s) => {
+                            if let Shell::Operator(_, op) = s{
+                                shells.push(Shell::Operator(true, op));
+                            }else{
+                                return Err(ExpressionTreeError::InvalidExpression)
+                            }
+                        },
+                        None => return Err(ExpressionTreeError::InvalidExpression),
+                    }
+                }
+            }
+            else{
+                if cur_char.is_lowercase(){
+                    return Err(ExpressionTreeError::LowercaseVariables);
+                }
+                return Err(ExpressionTreeError::UnknownSymbol);
+            }
+
+            expression = &expression[chars_consumed..];
+        }
+
+        while !operators.is_empty(){
+            shells.push(operators.pop().unwrap());
+        }
+
+        Ok(shells)
+    }
+
     /// # Shunting yard algorithm.
     /// 
     /// Takes a string representation of an infix logical expression and produces a Vec of `Shell`s.
