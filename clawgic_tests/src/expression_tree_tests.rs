@@ -416,4 +416,19 @@ mod test{
         notation.set_bicon(":p".to_string());
         assert_eq!(tree.infix(Some(&notation)), "((A1&&?B)||?C)0-0(D:pE)", "2");
     }
+
+    #[test_case("(A1<-B)>-C#(D@E)", "(A1&~B)v~C->(D<->E)", ["-", "<", ">", "#", "@"] ; "unique symbols")]
+    #[test_case("(A1 and notB)or notC if(D bicon E)", "(A1&~B)v~C->(D<->E)", ["not", "and", "or", "if", "bicon"] ; "lowercase words")]
+    fn new_with_notation(expr: &str, expected: &str, operators: [&str ; 5]){
+        let mut notation = OperatorNotation::default();
+        notation.set_neg(operators[0].to_string());
+        notation.set_and(operators[1].to_string());
+        notation.set_or(operators[2].to_string());
+        notation.set_con(operators[3].to_string());
+        notation.set_bicon(operators[4].to_string());
+        let t1 = ExpressionTree::new_with_notation(expr, &notation).unwrap();
+        let t2 = ExpressionTree::new(expected).unwrap();
+
+        assert!(t1.lit_eq(&t2));
+    }
 }

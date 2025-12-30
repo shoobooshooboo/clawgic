@@ -116,10 +116,11 @@ impl ExpressionTree{
                 Some(c) => c,
                 None => return Err(ExpressionTreeError::InvalidExpression),
             };
-            let mut chars_consumed = cur_char.len_utf8();
+            let mut chars_consumed = 0;
 
             if cur_char.is_uppercase(){
                 loop{
+                    chars_consumed += cur_char.len_utf8();
                     cur_char = match chars.next(){
                         Some(c) => c,
                         None => break,
@@ -127,7 +128,6 @@ impl ExpressionTree{
                     if !cur_char.is_numeric(){
                         break;
                     }
-                    chars_consumed += cur_char.len_utf8();
                 }
                 if denied{
                     operators.pop();
@@ -137,10 +137,10 @@ impl ExpressionTree{
             else if expression.starts_with(notation.and()) || expression.starts_with(notation.or()) || 
                     expression.starts_with(notation.con()) || expression.starts_with(notation.bicon()){
                 let op: Operator = 
-                    if expression.starts_with(notation.and()) {chars_consumed += notation.and().as_bytes().len(); Operator::AND} 
-                    else if expression.starts_with(notation.or()) {chars_consumed += notation.or().as_bytes().len(); Operator::OR}
-                    else if expression.starts_with(notation.con()) {chars_consumed += notation.con().as_bytes().len(); Operator::CON}
-                    else /*if expression.starts_with(notation.bicon())*/{chars_consumed += notation.bicon().as_bytes().len(); Operator::BICON};
+                    if expression.starts_with(notation.and()) {chars_consumed = notation.and().as_bytes().len(); Operator::AND} 
+                    else if expression.starts_with(notation.or()) {chars_consumed = notation.or().as_bytes().len(); Operator::OR}
+                    else if expression.starts_with(notation.con()) {chars_consumed = notation.con().as_bytes().len(); Operator::CON}
+                    else /*if expression.starts_with(notation.bicon())*/{chars_consumed = notation.bicon().as_bytes().len(); Operator::BICON};
                     
                 match operators.last(){
                     None => operators.push(Shell::Operator(false, op)),
@@ -163,6 +163,7 @@ impl ExpressionTree{
             }
             else if cur_char == '('{
                 operators.push(Shell::Parentheses);
+                chars_consumed = 1;
             }
             else if cur_char == ')'{
                 while operators.last().is_some_and(|op| !op.is_parentheses()){
@@ -184,6 +185,7 @@ impl ExpressionTree{
                         None => return Err(ExpressionTreeError::InvalidExpression),
                     }
                 }
+                chars_consumed = 1;
             }
             else{
                 if cur_char.is_lowercase(){
