@@ -21,7 +21,7 @@ mod test{
 
     #[test_case("(A&B", ExpressionTreeError::InvalidParentheses ; "missing close parentheses")]
     #[test_case("A&B)", ExpressionTreeError::InvalidParentheses ; "missing open parentheses")]
-    #[test_case("A&b", ExpressionTreeError::LowercaseVariables ; "lowercase variable")]
+    #[test_case("A&b", ExpressionTreeError::LowercaseVariables('b') ; "lowercase variable")]
     #[test_case("(A&B)&", ExpressionTreeError::TooManyOperators ; "Too many operators")]
     #[test_case("AB", ExpressionTreeError::NotEnoughOperators ; "Not enough operators")]
     #[test_case("A&~", ExpressionTreeError::InvalidExpression ; "tilde nothing")]
