@@ -1039,6 +1039,17 @@ impl ExpressionTree{
         }
     }
 
+    /// Applies transposition if the main connective (barring tildes)
+    /// is a conditional and then returns a mutable reference.
+    /// 
+    /// otherwise, does nothing and returns `None`.
+    pub fn transposition(&mut self) -> Option<&mut Self>{
+        match self.root.transposition(){
+            Some(_) => Some(self),
+            None => None,
+        }
+    }
+
     /// Performs the logical rule of implication on an expression tree
     /// if its main connective is a conditional operator
     /// or a disjunction operator; returns a mut reference.

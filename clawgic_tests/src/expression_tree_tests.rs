@@ -462,3 +462,10 @@ fn negation_functions(){
     assert!(tree.double_deny().lit_eq(&ExpressionTree::new("~~~A").unwrap()));
     assert!(tree.reduce_negation().lit_eq(&ExpressionTree::new("~A").unwrap()));
 }
+
+#[test]
+fn transposition(){
+    let mut tree = ExpressionTree::new("A->B").unwrap();
+    assert!(tree.transposition().unwrap().lit_eq(&ExpressionTree::new("~B->~A").unwrap()));
+    assert!(tree.transposition().unwrap().lit_eq(&ExpressionTree::new("A->B").unwrap()));
+}

@@ -1,7 +1,7 @@
 pub mod operator;
 pub mod negation;
 
-use std::{collections::HashMap};
+use std::{collections::HashMap, mem::swap};
 
 use operator::Operator;
 use crate::{expression_tree::{ExpressionTreeError, node::negation::Negation}, operator_notation::OperatorNotation};
@@ -179,6 +179,22 @@ impl Node{
                 }
             },
             _ => (),
+        }
+        None
+    }
+
+    /// Applies transposition if the main connective (barring tildes)
+    /// is a conditional and then returns a mutable reference.
+    /// 
+    /// otherwise, does nothing and returns `None`.
+    pub fn transposition(&mut self) -> Option<&mut Self>{
+        let Node::Operator { denied: _, op, left, right } = self
+            else {return None};
+        if op.is_con(){
+            left.deny();
+            right.deny();
+            swap(left, right);
+            return Some(self);
         }
         None
     }
