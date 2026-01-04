@@ -113,12 +113,52 @@ impl Node{
         }
     }
 
-    /// Negates the node; returns a mutable reference.
+    /// If the node has at least one tilde, remove one. otherwise, add one. returns a mutable reference.
     pub fn deny(&mut self) -> &mut Self{
         match self{
             Node::Constant(denied, ..) => denied.deny(),
             Node::Variable { denied, ..} => denied.deny(),
             Node::Operator { denied, ..} => denied.deny(),
+        };
+        self
+    }
+
+     /// If the node has more than 1 tilde, remove two. otherwise add two. returns a mutable reference.
+    pub fn double_deny(&mut self) -> &mut Self{
+        match self{
+            Node::Constant(denied, ..) => denied.double_deny(),
+            Node::Variable { denied, ..} => denied.double_deny(),
+            Node::Operator { denied, ..} => denied.double_deny(),
+        };
+        self
+    }
+
+    /// Adds a tilde to the node; returns a mutable reference
+    pub fn negate(&mut self) -> &mut Self{
+        match self{
+            Node::Constant(denied, ..) => denied.negate(),
+            Node::Variable { denied, ..} => denied.negate(),
+            Node::Operator { denied, ..} => denied.negate(),
+        };
+        self
+    }
+
+    // Adds two tildes to the node; returns a mutable reference
+    pub fn double_negate(&mut self) -> &mut Self{
+        match self{
+            Node::Constant(denied, ..) => denied.double_negate(),
+            Node::Variable { denied, ..} => denied.double_negate(),
+            Node::Operator { denied, ..} => denied.double_negate(),
+        };
+        self
+    }
+
+    /// Reduces the number of tildes to 0 or 1, retaining the truth value of the node; returns a mutable reference.
+    pub fn reduce_negation(&mut self) -> &mut Self{
+        match self{
+            Node::Constant(denied, ..) => denied.reduce(),
+            Node::Variable { denied, ..} => denied.reduce(),
+            Node::Operator { denied, ..} => denied.reduce(),
         };
         self
     }

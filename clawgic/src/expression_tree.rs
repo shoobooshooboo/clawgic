@@ -749,7 +749,7 @@ impl ExpressionTree{
 
     ///consumes the tree and produces a tree in the form of ~self.
     pub fn not(mut self) -> Self{
-        self.root.deny();
+        self.root.negate();
         match self.value.get_mut(){
             Some(v) => *v = !*v,
             None => (),
