@@ -160,3 +160,14 @@ fn mat_eq_mono(mut node: Node, expected: Node){
     node.mat_eq_mono();
     assert_eq!(node, expected);
 }
+
+#[test_case(true ; "true node")]
+#[test_case(false ; "false node")]
+fn retaining_negations(val: bool){
+    let mut node = Node::Constant(Negation::default(), val);
+    let vars = HashMap::new();
+    assert_eq!(node.double_deny().evaluate(&vars).unwrap(), val);
+    assert_eq!(node.double_negate().evaluate(&vars).unwrap(), val);
+    assert_eq!(node.double_deny().evaluate(&vars).unwrap(), val);
+    assert_eq!(node.reduce_negation().evaluate(&vars).unwrap(), val);
+}

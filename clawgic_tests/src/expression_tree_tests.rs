@@ -165,6 +165,7 @@ fn assignop_construction(){
 }
 
 #[test_case("A&B", "B&A", true ; "swapped operands")]
+#[test_case("A&B", "~~(A&B)", true ; "double negation")]
 #[test_case("A&B", "A&B", true ; "same expression")]
 #[test_case("A&~A", "B&~B", true ; "inconsistencies")]
 #[test_case("A&B", "A&C", false ; "completely different")]
@@ -176,6 +177,7 @@ fn log_eq(expr1: &str, expr2: &str, expected: bool){
 }
 
 #[test_case("A&B", "B&A", false ; "swapped operands")]
+#[test_case("A&B", "~~(A&B)", false ; "double negation")]
 #[test_case("A&B", "A&B", true ; "same expression")]
 #[test_case("A&~A", "B&~B", false ; "inconsistencies")]
 #[test_case("A&B", "A&C", false ; "completely different")]
@@ -187,6 +189,7 @@ fn lit_eq(expr1: &str, expr2: &str, expected: bool){
 }
 
 #[test_case("A&B", "B&A", true ; "swapped operands")]
+#[test_case("A&B", "~~(A&B)", true ; "double negation")]
 #[test_case("A&B", "A&B", true ; "same expression")]
 #[test_case("A&~A", "B&~B", false ; "inconsistencies")]
 #[test_case("A&B", "A&C", false ; "completely different")]
