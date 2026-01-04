@@ -455,7 +455,7 @@ impl ExpressionTree{
                 else{panic!("this should never happen (in replace_variable_rec())")};
             if var == name{
                 *cur_node = new_expression.root.clone();
-                if denied.tval(){
+                if denied.is_denied(){
                     cur_node.deny();
                 }
             }
@@ -505,7 +505,7 @@ impl ExpressionTree{
             match vars.get(&name){
                 Some(new_expression) => {
                     *cur_node = new_expression.root.clone();
-                    if denied.tval(){
+                    if denied.is_denied(){
                         cur_node.deny();
                     }
                 },
@@ -632,11 +632,11 @@ impl ExpressionTree{
         match node{
             Node::Operator { denied, op: _, left, right } => {
                 let mut op = node.print(notation);
-                if denied.tval(){
+                if denied.is_denied(){
                     //TODO!: make this less ugly
                     infix.push_str(&notation.neg().repeat(denied.count() as usize));
                     
-                    op = op.chars().skip(notation.neg().len() * denied.count() as usize).collect();
+                    op = op.chars().skip(notation.neg().chars().count() * denied.count() as usize).collect();
                 }
                 infix.push('(');
                 Self::infix_rec(left, infix, notation);
@@ -663,10 +663,10 @@ impl ExpressionTree{
     fn monotenize_rec(node: &mut Node){
         match &*node{
             Node::Operator { denied, op, left: _, right: _ } => {
-                if (op.is_and() || op.is_or()) && denied.tval(){
+                if (op.is_and() || op.is_or()) && denied.is_denied(){
                     node.demorgans();
                 }else if op.is_con(){
-                    if denied.tval(){
+                    if denied.is_denied(){
                         node.ncon();
                     }else{
                         node.implication();

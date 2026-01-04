@@ -1,6 +1,6 @@
 #[cfg(test)]
 
-use std::{collections::HashMap};
+use std::collections::HashMap;
 
 use clawgic::expression_tree::node::{Node, negation::Negation, operator::Operator};
 use test_case::test_case;
@@ -95,12 +95,12 @@ fn to_ascii(node: Node, expected: String){
 }
 
 #[test_case(
-    Node::Operator{denied: Negation::new(1), op: Operator::AND, left: Box::new(Node::Constant(Negation::new(0), true)), right: Box::new(Node::Variable{denied: Negation::new(0), name: "A".to_string()})},
-    Node::Operator{denied: Negation::new(0), op: Operator::OR, left: Box::new(Node::Constant(Negation::new(0), false)), right: Box::new(Node::Variable{denied: Negation::new(1), name: "A".to_string()})}
+    Node::Operator{denied: Negation::new(1), op: Operator::AND, left: Box::new(Node::Constant(Negation::new(1), true)), right: Box::new(Node::Variable{denied: Negation::new(0), name: "A".to_string()})},
+    Node::Operator{denied: Negation::new(0), op: Operator::OR, left: Box::new(Node::Constant(Negation::new(0), true)), right: Box::new(Node::Variable{denied: Negation::new(1), name: "A".to_string()})}
     ; "AND")]
 #[test_case(
-    Node::Operator{denied: Negation::new(0), op: Operator::OR, left: Box::new(Node::Constant(Negation::new(0), true)), right: Box::new(Node::Variable{denied: Negation::new(0), name: "A".to_string()})},
-    Node::Operator{denied: Negation::new(1), op: Operator::AND, left: Box::new(Node::Constant(Negation::new(0), false)), right: Box::new(Node::Variable{denied: Negation::new(1), name: "A".to_string()})}
+    Node::Operator{denied: Negation::new(0), op: Operator::OR, left: Box::new(Node::Constant(Negation::new(1), true)), right: Box::new(Node::Variable{denied: Negation::new(0), name: "A".to_string()})},
+    Node::Operator{denied: Negation::new(1), op: Operator::AND, left: Box::new(Node::Constant(Negation::new(0), true)), right: Box::new(Node::Variable{denied: Negation::new(1), name: "A".to_string()})}
     ; "OR")]
 fn demorgans(mut node: Node, expected: Node){
     node.demorgans();
@@ -126,11 +126,11 @@ fn mat_eq(mut node: Node, expected: Node){
 
 #[test_case(
     Node::Operator{denied: Negation::new(0), op: Operator::CON, left: Box::new(Node::Constant(Negation::new(0), true)), right: Box::new(Node::Variable{denied: Negation::new(0), name: "A".to_string()})},
-    Node::Operator{denied: Negation::new(0), op: Operator::OR, left: Box::new(Node::Constant(Negation::new(0), false)), right: Box::new(Node::Variable{denied: Negation::new(0), name: "A".to_string()})}
+    Node::Operator{denied: Negation::new(0), op: Operator::OR, left: Box::new(Node::Constant(Negation::new(1), true)), right: Box::new(Node::Variable{denied: Negation::new(0), name: "A".to_string()})}
     ; "CON")]
 #[test_case(
     Node::Operator{denied: Negation::new(0), op: Operator::OR, left: Box::new(Node::Constant(Negation::new(0), true)), right: Box::new(Node::Variable{denied: Negation::new(0), name: "A".to_string()})},
-    Node::Operator{denied: Negation::new(0), op: Operator::CON, left: Box::new(Node::Constant(Negation::new(0), false)), right: Box::new(Node::Variable{denied: Negation::new(0), name: "A".to_string()})}
+    Node::Operator{denied: Negation::new(0), op: Operator::CON, left: Box::new(Node::Constant(Negation::new(1), true)), right: Box::new(Node::Variable{denied: Negation::new(0), name: "A".to_string()})}
     ; "OR")]
 fn implication(mut node: Node, expected: Node){
     node.implication();
@@ -138,12 +138,12 @@ fn implication(mut node: Node, expected: Node){
 }
 
 #[test_case(
-    Node::Operator{denied: Negation::new(0), op: Operator::AND, left: Box::new(Node::Constant(Negation::new(0), true)), right: Box::new(Node::Variable{denied: Negation::new(0), name: "A".to_string()})},
+    Node::Operator{denied: Negation::new(1), op: Operator::AND, left: Box::new(Node::Constant(Negation::new(0), true)), right: Box::new(Node::Variable{denied: Negation::new(0), name: "A".to_string()})},
     Node::Operator{denied: Negation::new(0), op: Operator::CON, left: Box::new(Node::Constant(Negation::new(0), true)), right: Box::new(Node::Variable{denied: Negation::new(1), name: "A".to_string()})}
     ; "AND")]
 #[test_case(
     Node::Operator{denied: Negation::new(0), op: Operator::CON, left: Box::new(Node::Constant(Negation::new(0), true)), right: Box::new(Node::Variable{denied: Negation::new(0), name: "A".to_string()})},
-    Node::Operator{denied: Negation::new(0), op: Operator::AND, left: Box::new(Node::Constant(Negation::new(0), true)), right: Box::new(Node::Variable{denied: Negation::new(1), name: "A".to_string()})}
+    Node::Operator{denied: Negation::new(1), op: Operator::AND, left: Box::new(Node::Constant(Negation::new(0), true)), right: Box::new(Node::Variable{denied: Negation::new(1), name: "A".to_string()})}
     ; "CON")]
 fn ncon(mut node: Node, expected: Node){
     node.ncon();

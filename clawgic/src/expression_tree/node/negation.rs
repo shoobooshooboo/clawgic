@@ -20,7 +20,7 @@ impl Negation{
 
     ///If count > 1, decrement. otherwise, increment.
     pub fn double_deny(&mut self){
-        if self.count >= 2{
+        if self.count > 1{
             self.count -= 2;
         }else{
             self.count += 2;
@@ -42,7 +42,12 @@ impl Negation{
         self.count &= 1
     }
 
-    ///Truth val. If count is even, return true. otherwise false.
+    ///If count is even, return false. otherwise true.
+    pub fn is_denied(&self) -> bool{
+        self.count & 1 == 1
+    }
+
+    ///Truth value. If count is even, return true. otherwise false.
     pub fn tval(&self) -> bool{
         self.count & 1 != 1
     }
