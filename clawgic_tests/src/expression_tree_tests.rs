@@ -447,3 +447,18 @@ fn large_tree_sat<F>(center: &str, func: F, expected: bool)
 
     assert_eq!(tree.is_satisfiable(), expected);
 }
+
+//i know this is bad convention for unit tests,
+//but all of these functions are extremely simple,
+//so i don't really care.
+#[test]
+fn negation_functions(){
+    let mut tree = ExpressionTree::new("A").unwrap();
+    assert!(tree.deny().lit_eq(&ExpressionTree::new("~A").unwrap()));
+    assert!(tree.negate().lit_eq(&ExpressionTree::new("~~A").unwrap()));
+    assert!(tree.deny().lit_eq(&ExpressionTree::new("~A").unwrap()));
+    assert!(tree.double_deny().lit_eq(&ExpressionTree::new("~~~A").unwrap()));
+    assert!(tree.double_negate().lit_eq(&ExpressionTree::new("~~~~~A").unwrap()));
+    assert!(tree.double_deny().lit_eq(&ExpressionTree::new("~~~A").unwrap()));
+    assert!(tree.reduce_negation().lit_eq(&ExpressionTree::new("~A").unwrap()));
+}

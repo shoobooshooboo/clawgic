@@ -987,13 +987,44 @@ impl ExpressionTree{
         Self::is_contingency(&(self.clone() & aux.clone()))
     }
 
-    /// Negates the expression tree; returns a mutable reference.
+    /// If the tree has at least one leading tilde,
+    /// remove one. otherwise, add one. returns a mutable reference.
     pub fn deny(&mut self) -> &mut Self{
         self.root.deny();
         match self.value.get_mut(){
             Some(v) => *v = !*v,
             None => (),
         };
+        self
+    }
+
+    /// If the tree has at least 2 leading tildes,
+    /// remove two. otherwise, add two. returns a mutable reference.
+    pub fn double_deny(&mut self) -> &mut Self{
+        self.root.double_deny();
+        self
+    }
+
+    /// Adds a leading tilde; returns a mutable reference.
+    pub fn negate(&mut self) -> &mut Self{
+        self.root.negate();
+        match self.value.get_mut(){
+            Some(v) => *v = !*v,
+            None => (),
+        };
+        self
+    }
+
+    /// Adds two leading tildes; returns a mutable reference.
+    pub fn double_negate(&mut self) -> &mut Self{
+        self.root.double_negate();
+        self
+    }
+
+    /// Reduces the number of leading tildes to 0 or 1,
+    /// retaining truth value; returns a mutable refernce.
+    pub fn reduce_negation(&mut self) -> &mut Self{
+        self.root.reduce_negation();
         self
     }
 

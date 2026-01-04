@@ -123,7 +123,7 @@ impl Node{
         self
     }
 
-     /// If the node has more than 1 tilde, remove two. otherwise add two. returns a mutable reference.
+    /// If the node has more than 1 tilde, remove two. otherwise add two. returns a mutable reference.
     pub fn double_deny(&mut self) -> &mut Self{
         match self{
             Node::Constant(denied, ..) => denied.double_deny(),
