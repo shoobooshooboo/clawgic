@@ -1,3 +1,5 @@
+use crate::expression_tree::node::negation::Negation;
+
 use super::node::operator::Operator;
 
 /// This is a data type made for the shunting yard algorithm. 
@@ -5,15 +7,15 @@ use super::node::operator::Operator;
 /// It represents the tokens of an infix logical expression. 
 pub enum Shell{
     /// Binary logical operator.
-    Operator(bool, Operator),
+    Operator(Negation, Operator),
     /// Boolean Variable.
-    Variable(bool, String),
+    Variable(Negation, String),
     /// Boolean constant. True or False.
-    Constant(bool),
+    Constant(Negation, bool),
     /// Open Parentheses.
     Parentheses,
     /// Boolean denial operator.
-    Tilde,
+    Tilde(Negation),
 }
 
 impl Shell{
@@ -36,7 +38,7 @@ impl Shell{
     /// Whether the `Shell` is an `Constant`.
     pub fn is_constant(&self) -> bool{
         match self{
-            Self::Constant(_) => true,
+            Self::Constant(..) => true,
             _ => false,
         }
     }
@@ -52,7 +54,7 @@ impl Shell{
     /// Whether the `Shell` is an `Tilde`.
     pub fn is_tilde(&self) -> bool{
         match self{
-            Self::Tilde => true,
+            Self::Tilde(..) => true,
             _ => false,
         }
     }

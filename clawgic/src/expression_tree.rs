@@ -7,6 +7,7 @@ use node::operator::Operator;
 use std::cell::Cell;
 use std::collections::HashMap;
 
+use crate::expression_tree::node::negation::Negation;
 use crate::operator_notation::OperatorNotation;
 
 /// All the errors that can occur in making and managing an `ExpressionTree`. 
@@ -54,19 +55,19 @@ impl ExpressionTree{
     ///returns a tree that is just a true node
     #[allow(non_snake_case)]
     pub fn TRUE() -> Self{
-        Self { vars: HashMap::new(), root: Node::Constant(true), value: Cell::new(Some(true)) }
+        Self { vars: HashMap::new(), root: Node::Constant(Negation::default(), true), value: Cell::new(Some(true)) }
     }
 
     /// Returns a tree that is just a false node
     #[allow(non_snake_case)]
     pub fn FALSE() -> Self{
-        Self { vars: HashMap::new(), root: Node::Constant(false), value: Cell::new(Some(false)) }
+        Self { vars: HashMap::new(), root: Node::Constant(Negation::default(), false), value: Cell::new(Some(false)) }
         
     }
 
     // Constructs a tree with a single constant node of the given value.
     pub fn constant(b: bool) -> Self{
-        Self { vars: HashMap::new(), root: Node::Constant(b), value: Cell::new(Some(b)) }
+        Self { vars: HashMap::new(), root: Node::Constant(Negation::default(), b), value: Cell::new(Some(b)) }
     }
 
     /// Constructs a new expression tree given a string representation of an infix logical expression.
@@ -108,24 +109,24 @@ impl ExpressionTree{
 
         while !expression.is_empty(){
             expression = expression.trim_start();
-            let mut denied = false;
+            let mut negation = Negation::default();
             while expression.starts_with(notation.neg()){
-                denied = !denied;
+                negation.negate();
                 expression = &expression[notation.neg().as_bytes().len()..];
             }
 
             if expression.starts_with("TRUE"){
-                shells.push(Shell::Constant(!denied));
+                shells.push(Shell::Constant(negation, true));
                 expression = &expression[4..];
                 continue;
             }else if expression.starts_with("FALSE"){
-                shells.push(Shell::Constant(denied));
+                shells.push(Shell::Constant(negation, false));
                 expression = &expression[5..];
                 continue;
             }
 
-            if denied{
-                operators.push(Shell::Tilde);
+            if negation.count() > 0{
+                operators.push(Shell::Tilde(negation));
             }
 
             let mut chars = expression.chars();
@@ -146,10 +147,10 @@ impl ExpressionTree{
                         break;
                     }
                 }
-                if denied{
+                if negation.count() > 0{
                     operators.pop();
                 }
-                shells.push(Shell::Variable(denied, expression[0..chars_consumed].to_string()));
+                shells.push(Shell::Variable(negation, expression[0..chars_consumed].to_string()));
             }
             else if expression.starts_with(notation.and()) || expression.starts_with(notation.or()) || 
                     expression.starts_with(notation.con()) || expression.starts_with(notation.bicon()){
@@ -160,7 +161,7 @@ impl ExpressionTree{
                     else /*if expression.starts_with(notation.bicon())*/{chars_consumed = notation.bicon().as_bytes().len(); Operator::BICON};
                     
                 match operators.last(){
-                    None => operators.push(Shell::Operator(false, op)),
+                    None => operators.push(Shell::Operator(Negation::default(), op)),
                     Some(_) => {
                         while let Some(Shell::Operator(_, o)) = operators.last(){
                             if o.precedence() < op.precedence(){
@@ -170,11 +171,11 @@ impl ExpressionTree{
                             }
                             shells.push(operators.pop().unwrap());
                         }
-                        if let Some(Shell::Tilde) = operators.last(){
-                            denied = true;
+                        if let Some(Shell::Tilde(n)) = operators.last(){
+                            negation = *n;
                             operators.pop();
                         }
-                        operators.push(Shell::Operator(denied, op));
+                        operators.push(Shell::Operator(negation, op));
                     },
                 }
             }
@@ -189,12 +190,11 @@ impl ExpressionTree{
                 if operators.pop().is_none_or(|x| !x.is_parentheses()){
                     return Err(ExpressionTreeError::InvalidParentheses);
                 }
-                if operators.last().is_some_and(|x| x.is_tilde()){
-                    operators.pop();
+                if let Some(Shell::Tilde(n)) = operators.pop_if(|s| s.is_tilde()){
                     match shells.pop(){
                         Some(s) => {
                             if let Shell::Operator(_, op) = s{
-                                shells.push(Shell::Operator(true, op));
+                                shells.push(Shell::Operator(n, op));
                             }else{
                                 return Err(ExpressionTreeError::InvalidExpression)
                             }
@@ -231,24 +231,24 @@ impl ExpressionTree{
 
         while !expression.is_empty(){
             expression = expression.trim_start();
-            let mut denied = false;
+            let mut negation = Negation::default();
             while expression.starts_with('~') || expression.starts_with('!') || expression.starts_with('¬'){
-                denied = !denied;
+                negation.negate();
                 expression = if expression.starts_with('¬') {&expression[2..]} else {&expression[1..]};
             }
 
             if expression.starts_with("TRUE"){
-                shells.push(Shell::Constant(!denied));
+                shells.push(Shell::Constant(negation, true));
                 expression = &expression[4..];
                 continue;
             }else if expression.starts_with("FALSE"){
-                shells.push(Shell::Constant(denied));
+                shells.push(Shell::Constant(negation, false));
                 expression = &expression[5..];
                 continue;
             }
 
-            if denied{
-                operators.push(Shell::Tilde);
+            if negation.count() > 0{
+                operators.push(Shell::Tilde(negation));
             }
 
             let mut chars = expression.chars();
@@ -269,10 +269,10 @@ impl ExpressionTree{
                     }
                     chars_consumed += cur_char.len_utf8();
                 }
-                if denied{
+                if negation.count() > 0{
                     operators.pop();
                 }
-                shells.push(Shell::Variable(denied, expression[0..chars_consumed].to_string()));
+                shells.push(Shell::Variable(negation, expression[0..chars_consumed].to_string()));
             }
             else if cur_char == '&' || cur_char == '*' || cur_char == '∧' || cur_char == '^' || cur_char == '⋅' ||
                     cur_char == 'v' || cur_char == '∨' || cur_char == '|' || cur_char == '+' || 
@@ -315,7 +315,7 @@ impl ExpressionTree{
                     }
                 }
                 match operators.last(){
-                    None => operators.push(Shell::Operator(false, op)),
+                    None => operators.push(Shell::Operator(Negation::default(), op)),
                     Some(_) => {
                         while let Some(Shell::Operator(_, o)) = operators.last(){
                             if o.precedence() < op.precedence(){
@@ -325,11 +325,11 @@ impl ExpressionTree{
                             }
                             shells.push(operators.pop().unwrap());
                         }
-                        if let Some(Shell::Tilde) = operators.last(){
-                            denied = true;
+                        if let Some(Shell::Tilde(n)) = operators.last(){
+                            negation = *n;
                             operators.pop();
                         }
-                        operators.push(Shell::Operator(denied, op));
+                        operators.push(Shell::Operator(negation, op));
                     },
                 }
             }
@@ -343,12 +343,11 @@ impl ExpressionTree{
                 if operators.pop().is_none_or(|x| !x.is_parentheses()){
                     return Err(ExpressionTreeError::InvalidParentheses);
                 }
-                if operators.last().is_some_and(|x| x.is_tilde()){
-                    operators.pop();
+                if let Some(Shell::Tilde(n)) = operators.pop_if(|s| s.is_tilde()){
                     match shells.pop(){
                         Some(s) => {
                             if let Shell::Operator(_, op) = s{
-                                shells.push(Shell::Operator(true, op));
+                                shells.push(Shell::Operator(n, op));
                             }else{
                                 return Err(ExpressionTreeError::InvalidExpression)
                             }
@@ -385,9 +384,9 @@ impl ExpressionTree{
                         Node::Operator { denied, op, left: Box::new(left), right: Box::new(right) }
                     },
                     Shell::Variable(denied, name) => Node::Variable { denied, name},
-                    Shell::Constant(value) => Node::Constant(value),
+                    Shell::Constant(neg, value) => Node::Constant(neg, value),
                     Shell::Parentheses => return Err(ExpressionTreeError::InvalidParentheses),
-                    Shell::Tilde => return Err(ExpressionTreeError::InvalidExpression),
+                    Shell::Tilde(_) => return Err(ExpressionTreeError::InvalidExpression),
                 }
             },
             None => return Err(ExpressionTreeError::TooManyOperators),
@@ -404,7 +403,7 @@ impl ExpressionTree{
                 let vars = Self::create_vars(left, vars);
                 Self::create_vars(right, vars)
             },
-            Node::Constant(_) => vars,
+            Node::Constant(..) => vars,
             Node::Variable { denied: _, name} => {
                 vars.insert(name.clone(), None);
                 vars
@@ -456,7 +455,7 @@ impl ExpressionTree{
                 else{panic!("this should never happen (in replace_variable_rec())")};
             if var == name{
                 *cur_node = new_expression.root.clone();
-                if denied{
+                if denied.tval(){
                     cur_node.deny();
                 }
             }
@@ -506,7 +505,7 @@ impl ExpressionTree{
             match vars.get(&name){
                 Some(new_expression) => {
                     *cur_node = new_expression.root.clone();
-                    if denied{
+                    if denied.tval(){
                         cur_node.deny();
                     }
                 },
@@ -633,9 +632,11 @@ impl ExpressionTree{
         match node{
             Node::Operator { denied, op: _, left, right } => {
                 let mut op = node.print(notation);
-                if *denied{
-                    infix.push_str(notation.neg());
-                    op.remove(0);
+                if denied.tval(){
+                    //TODO!: make this less ugly
+                    infix.push_str(&notation.neg().repeat(denied.count() as usize));
+                    
+                    op = op.chars().skip(notation.neg().len() * denied.count() as usize).collect();
                 }
                 infix.push('(');
                 Self::infix_rec(left, infix, notation);
@@ -662,10 +663,10 @@ impl ExpressionTree{
     fn monotenize_rec(node: &mut Node){
         match &*node{
             Node::Operator { denied, op, left: _, right: _ } => {
-                if (op.is_and() || op.is_or()) && *denied{
+                if (op.is_and() || op.is_or()) && denied.tval(){
                     node.demorgans();
                 }else if op.is_con(){
-                    if *denied{
+                    if denied.tval(){
                         node.ncon();
                     }else{
                         node.implication();
@@ -702,7 +703,7 @@ impl ExpressionTree{
 
         Self { 
             vars: self.vars, 
-            root: Node::Operator{denied: false, op: node::operator::Operator::AND, left: Box::new(self.root), right: Box::new(second.root)},
+            root: Node::Operator{denied: Negation::default(), op: node::operator::Operator::AND, left: Box::new(self.root), right: Box::new(second.root)},
             value: Cell::new(None),
         }
     }
@@ -715,7 +716,7 @@ impl ExpressionTree{
 
         Self { 
             vars: self.vars, 
-            root: Node::Operator{denied: false, op: node::operator::Operator::OR, left: Box::new(self.root), right: Box::new(second.root)},
+            root: Node::Operator{denied: Negation::default(), op: node::operator::Operator::OR, left: Box::new(self.root), right: Box::new(second.root)},
             value: Cell::new(None),
         }
     }
@@ -728,7 +729,7 @@ impl ExpressionTree{
 
         Self { 
             vars: self.vars, 
-            root: Node::Operator{denied: false, op: node::operator::Operator::CON, left: Box::new(self.root), right: Box::new(consequent.root)},
+            root: Node::Operator{denied: Negation::default(), op: node::operator::Operator::CON, left: Box::new(self.root), right: Box::new(consequent.root)},
             value: Cell::new(None),
         }
     }
@@ -741,7 +742,7 @@ impl ExpressionTree{
 
         Self { 
             vars: self.vars, 
-            root: Node::Operator{denied: false, op: node::operator::Operator::BICON, left: Box::new(self.root), right: Box::new(second.root)},
+            root: Node::Operator{denied: Negation::default(), op: node::operator::Operator::BICON, left: Box::new(self.root), right: Box::new(second.root)},
             value: Cell::new(None),
         }
     }
@@ -1059,7 +1060,7 @@ impl Default for ExpressionTree{
     fn default() -> Self {
         Self { 
             vars: HashMap::new(), 
-            root: Node::Constant(false),
+            root: Node::Constant(Negation::default(), false),
             value: Cell::new(None),
         }
     }

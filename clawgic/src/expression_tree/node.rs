@@ -1,9 +1,10 @@
 pub mod operator;
+pub mod negation;
 
-use std::collections::HashMap;
+use std::{collections::HashMap};
 
 use operator::Operator;
-use crate::{expression_tree::ExpressionTreeError, operator_notation::OperatorNotation};
+use crate::{expression_tree::{ExpressionTreeError, node::negation::Negation}, operator_notation::OperatorNotation};
 
 /// Nodes for regular logical expression tree.
 /// 
@@ -16,7 +17,7 @@ pub enum Node{
     /// Binary operator node.
     Operator{
         /// Whether there is an odd number of tildes preceding the operator.
-        denied: bool,
+        denied: Negation,
         /// the type of operator.
         op: Operator,
         /// left operand.
@@ -27,12 +28,12 @@ pub enum Node{
     /// Variable node.
     Variable{
         /// Whether there is an odd number of tildes preceding the variable.
-        denied: bool,
+        denied: Negation,
         /// Identifier of the variable. Ex: "A", "G", "B3".
         name: String,
     },
     /// Constant node. True or False.
-    Constant(bool),
+    Constant(Negation, bool),
 }
 
 impl Node{
@@ -55,7 +56,7 @@ impl Node{
     /// Whether it is a constant node.
     pub fn is_constant(&self) -> bool{
         match self{
-            Self::Constant(_) => true,
+            Self::Constant(..) => true,
             _ => false,
         }
     }
@@ -73,7 +74,7 @@ impl Node{
         match self{
             Self::Operator{op, denied, left, right} => {
                 let result = op.execute(left.evaluate(vars)?, right.evaluate(vars)?);
-                if *denied {Ok(!result)}
+                if denied.tval() {Ok(!result)}
                 else {Ok(result)}
             }
             Self::Variable { denied, name} =>{
@@ -86,9 +87,9 @@ impl Node{
                     },
                     None => return Err(ExpressionTreeError::UninitializedVariable(name.clone())),
                 };
-                Ok(*denied != result)
+                Ok(denied.tval() != result)
             }
-            Self::Constant(value) => Ok(value.clone()),
+            Self::Constant(denied, value) => Ok(denied.tval() != *value),
         }
     }
 
@@ -99,25 +100,25 @@ impl Node{
         match self{
             Self::Operator{op, denied, left, right} => {
                 let result = op.execute(left.evaluate_with_vars(vars)?, right.evaluate_with_vars(vars)?);
-                Ok(result != *denied)
+                Ok(result != denied.tval())
             }
             Self::Variable { denied, name} =>{
                 let result = match vars.get(name){
                     Some(b) => b.clone(),
                     None => return Err(ExpressionTreeError::UninitializedVariable(name.clone())),
                 };
-                Ok (result != *denied)
+                Ok (result != denied.tval())
             }
-            Self::Constant(value) => Ok(value.clone()),
+            Self::Constant(denied, value) => Ok(denied.tval() != *value),
         }
     }
 
     /// Negates the node; returns a mutable reference.
     pub fn deny(&mut self) -> &mut Self{
         match self{
-            Node::Constant(b) => *b = !*b,
-            Node::Variable { denied, ..} => *denied = !*denied,
-            Node::Operator { denied, ..} => *denied = !*denied,
+            Node::Constant(denied, ..) => denied.deny(),
+            Node::Variable { denied, ..} => denied.deny(),
+            Node::Operator { denied, ..} => denied.deny(),
         };
         self
     }
@@ -131,7 +132,7 @@ impl Node{
             Node::Operator { denied, op, left, right } => {
                 if op.is_and() || op.is_or(){
                     *op = if op.is_and() {Operator::OR} else {Operator::AND};
-                    *denied = !*denied;
+                    denied.deny();
                     left.deny();
                     right.deny();
                     return Some(self);
@@ -168,7 +169,7 @@ impl Node{
             Node::Operator { denied, op, left: _, right } => {
                 if op.is_con() || op.is_and(){
                     *op = if op.is_con() {Operator::AND} else {Operator::CON};
-                    *denied = !*denied;
+                    denied.deny();
                     right.deny();
                     return Some(self);
                 }
@@ -188,14 +189,14 @@ impl Node{
                     *op = Operator::AND;
                     let old_left = left.clone();
                     let old_right = right.clone();
-                    *left = Box::new(Node::Operator { denied: false, op: Operator::CON, left: old_left.clone(), right: old_right.clone() });
-                    *right = Box::new(Node::Operator { denied: false, op: Operator::CON, left: old_right, right: old_left });
+                    *left = Box::new(Node::Operator { denied: Negation::default(), op: Operator::CON, left: old_left.clone(), right: old_right.clone() });
+                    *right = Box::new(Node::Operator { denied: Negation::default(), op: Operator::CON, left: old_right, right: old_left });
 
                     return Some(self);
                 }else if op.is_and(){
                     if let Node::Operator{denied: ld, op: l_op, left: ll, right: lr} = *left.clone(){
                         if let Node::Operator { denied: rd, op: r_op, left: rl, right: rr } = *right.clone(){
-                            if l_op.is_con() && r_op.is_con() && !ld && !rd && ll == rr && lr == rl{
+                            if l_op.is_con() && r_op.is_con() && !ld.tval() && !rd.tval() && ll == rr && lr == rl{
                                 *op = Operator::BICON;
                                 *left = ll;
                                 *right = lr;
@@ -223,8 +224,8 @@ impl Node{
                     *op = Operator::OR;
                     let mut old_left = left.clone();
                     let mut old_right = right.clone();
-                    if *denied{
-                        *denied = false;
+                    if denied.tval(){
+                        denied.deny();
                         if old_left < old_right{
                             old_left.deny();
                         }
@@ -232,10 +233,10 @@ impl Node{
                             old_right.deny();
                         }
                     }
-                    *left = Box::new(Node::Operator { denied: false, op: Operator::AND, left: old_left.clone(), right: old_right.clone() });
+                    *left = Box::new(Node::Operator { denied: Negation::default(), op: Operator::AND, left: old_left.clone(), right: old_right.clone() });
                     old_left.deny();
                     old_right.deny();
-                    *right = Box::new(Node::Operator { denied: false, op: Operator::AND, left: old_left, right: old_right });
+                    *right = Box::new(Node::Operator { denied: Negation::default(), op: Operator::AND, left: old_left, right: old_right });
                     return Some(self);
                 }
             },
@@ -249,7 +250,7 @@ impl Node{
         match self{
             Self::Operator { denied, op, .. } => {
                 let mut s = String::new();
-                if *denied{
+                if denied.tval(){
                     s.push_str(notation.neg());
                 }
                 match op{
@@ -263,17 +264,22 @@ impl Node{
             }
             Self::Variable { denied, name, .. } => {
                 let mut s = String::new();
-                if *denied{
+                if denied.tval(){
                     s.push_str(notation.neg());
                 }
                 s.push_str(name);
                 s
             }
-            Self::Constant(b) => {
+            Self::Constant(denied, b) => {
+                let mut s = String::new();
+                for _ in 0..denied.count(){
+                    s.push_str(notation.neg())
+                }
+                s + 
                 if *b{
-                    "TRUE".to_string()
+                    "TRUE"
                 }else{
-                    "FALSE".to_string()
+                    "FALSE"
                 }
             }
         }
