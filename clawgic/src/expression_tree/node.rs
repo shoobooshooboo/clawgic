@@ -17,7 +17,7 @@ pub enum Node{
     /// Binary operator node.
     Operator{
         /// Whether there is an odd number of tildes preceding the operator.
-        denied: Negation,
+        neg: Negation,
         /// the type of operator.
         op: Operator,
         /// left operand.
@@ -28,7 +28,7 @@ pub enum Node{
     /// Variable node.
     Variable{
         /// Whether there is an odd number of tildes preceding the variable.
-        denied: Negation,
+        neg: Negation,
         /// Identifier of the variable. Ex: "A", "G", "B3".
         name: String,
     },
@@ -72,12 +72,12 @@ impl Node{
     /// Will return an ExpressionTreeError if the evaluation of the left or right results in an `Err` value. 
     pub fn evaluate(&self, vars: &HashMap<String, Option<bool>>) -> Result<bool, ExpressionTreeError>{
         match self{
-            Self::Operator{op, denied, left, right} => {
+            Self::Operator{op, neg: denied, left, right} => {
                 let result = op.execute(left.evaluate(vars)?, right.evaluate(vars)?);
                 if denied.is_denied() {Ok(!result)}
                 else {Ok(result)}
             }
-            Self::Variable { denied, name} =>{
+            Self::Variable { neg: denied, name} =>{
                 let result = match vars.get(name){
                     Some(b) => {
                         if b.is_none(){
@@ -98,11 +98,11 @@ impl Node{
     /// If some variable is not present in the map, returns `ExpressionTreeError::UninitualizedVariable`
     pub fn evaluate_with_vars(&self, vars: &HashMap<String, bool>) -> Result<bool, ExpressionTreeError>{
         match self{
-            Self::Operator{op, denied, left, right} => {
+            Self::Operator{op, neg: denied, left, right} => {
                 let result = op.execute(left.evaluate_with_vars(vars)?, right.evaluate_with_vars(vars)?);
                 Ok(result != denied.is_denied())
             }
-            Self::Variable { denied, name} =>{
+            Self::Variable { neg: denied, name} =>{
                 let result = match vars.get(name){
                     Some(b) => b.clone(),
                     None => return Err(ExpressionTreeError::UninitializedVariable(name.clone())),
@@ -117,8 +117,8 @@ impl Node{
     pub fn deny(&mut self) -> &mut Self{
         match self{
             Node::Constant(denied, ..) => denied.deny(),
-            Node::Variable { denied, ..} => denied.deny(),
-            Node::Operator { denied, ..} => denied.deny(),
+            Node::Variable { neg: denied, ..} => denied.deny(),
+            Node::Operator { neg: denied, ..} => denied.deny(),
         };
         self
     }
@@ -127,8 +127,8 @@ impl Node{
     pub fn double_deny(&mut self) -> &mut Self{
         match self{
             Node::Constant(denied, ..) => denied.double_deny(),
-            Node::Variable { denied, ..} => denied.double_deny(),
-            Node::Operator { denied, ..} => denied.double_deny(),
+            Node::Variable { neg: denied, ..} => denied.double_deny(),
+            Node::Operator { neg: denied, ..} => denied.double_deny(),
         };
         self
     }
@@ -137,8 +137,8 @@ impl Node{
     pub fn negate(&mut self) -> &mut Self{
         match self{
             Node::Constant(denied, ..) => denied.negate(),
-            Node::Variable { denied, ..} => denied.negate(),
-            Node::Operator { denied, ..} => denied.negate(),
+            Node::Variable { neg: denied, ..} => denied.negate(),
+            Node::Operator { neg: denied, ..} => denied.negate(),
         };
         self
     }
@@ -147,8 +147,8 @@ impl Node{
     pub fn double_negate(&mut self) -> &mut Self{
         match self{
             Node::Constant(denied, ..) => denied.double_negate(),
-            Node::Variable { denied, ..} => denied.double_negate(),
-            Node::Operator { denied, ..} => denied.double_negate(),
+            Node::Variable { neg: denied, ..} => denied.double_negate(),
+            Node::Operator { neg: denied, ..} => denied.double_negate(),
         };
         self
     }
@@ -157,8 +157,8 @@ impl Node{
     pub fn reduce_negation(&mut self) -> &mut Self{
         match self{
             Node::Constant(denied, ..) => denied.reduce(),
-            Node::Variable { denied, ..} => denied.reduce(),
-            Node::Operator { denied, ..} => denied.reduce(),
+            Node::Variable { neg: denied, ..} => denied.reduce(),
+            Node::Operator { neg: denied, ..} => denied.reduce(),
         };
         self
     }
@@ -169,7 +169,7 @@ impl Node{
     /// Otherwise, does nothing and returns `None`.
     pub fn demorgans(&mut self) -> Option<&mut Self>{
         match self{
-            Node::Operator { denied, op, left, right } => {
+            Node::Operator { neg: denied, op, left, right } => {
                 if op.is_and() || op.is_or(){
                     *op = if op.is_and() {Operator::OR} else {Operator::AND};
                     denied.deny();
@@ -191,7 +191,7 @@ impl Node{
     /// Opts for negating instead of denying
     pub fn demorgans_neg(&mut self) -> Option<&mut Self>{
         match self{
-            Node::Operator { denied, op, left, right } => {
+            Node::Operator { neg: denied, op, left, right } => {
                 if op.is_and() || op.is_or(){
                     *op = if op.is_and() {Operator::OR} else {Operator::AND};
                     denied.negate();
@@ -210,7 +210,7 @@ impl Node{
     /// 
     /// otherwise, does nothing and returns `None`.
     pub fn transposition(&mut self) -> Option<&mut Self>{
-        let Node::Operator { denied: _, op, left, right } = self
+        let Node::Operator { neg: _, op, left, right } = self
             else {return None};
         if op.is_con(){
             left.deny();
@@ -228,7 +228,7 @@ impl Node{
     /// 
     /// Opts for negating instead of denying
     pub fn transposition_neg(&mut self) -> Option<&mut Self>{
-        let Node::Operator { denied: _, op, left, right } = self
+        let Node::Operator { neg: _, op, left, right } = self
             else {return None};
         if op.is_con(){
             left.negate();
@@ -244,7 +244,7 @@ impl Node{
     /// Otherwise, does nothing and returns None.. 
     pub fn implication(&mut self) -> Option<&mut Self>{
         match self{
-            Node::Operator { denied: _, op, left, right: _ } => {
+            Node::Operator { neg: _, op, left, right: _ } => {
                 if op.is_con() || op.is_or(){
                     *op =  if op.is_con() {Operator::OR} else {Operator::CON};
                     left.deny();
@@ -263,7 +263,7 @@ impl Node{
     /// Opts for negating instead of denying
     pub fn implication_neg(&mut self) -> Option<&mut Self>{
         match self{
-            Node::Operator { denied: _, op, left, right: _ } => {
+            Node::Operator { neg: _, op, left, right: _ } => {
                 if op.is_con() || op.is_or(){
                     *op =  if op.is_con() {Operator::OR} else {Operator::CON};
                     left.negate();
@@ -281,7 +281,7 @@ impl Node{
     /// Otherwise does nothing and returns `None`.
     pub fn ncon(&mut self) -> Option<&mut Self>{
         match self{
-            Node::Operator { denied, op, left: _, right } => {
+            Node::Operator { neg: denied, op, left: _, right } => {
                 if op.is_con() || op.is_and(){
                     *op = if op.is_con() {Operator::AND} else {Operator::CON};
                     denied.deny();
@@ -302,7 +302,7 @@ impl Node{
     /// Opts for negating instead of denying
     pub fn ncon_neg(&mut self) -> Option<&mut Self>{
         match self{
-            Node::Operator { denied, op, left: _, right } => {
+            Node::Operator { neg: denied, op, left: _, right } => {
                 if op.is_con() || op.is_and(){
                     *op = if op.is_con() {Operator::AND} else {Operator::CON};
                     denied.negate();
@@ -320,18 +320,18 @@ impl Node{
     /// Otherwise, does nothing and returns `None`.
     pub fn mat_eq(&mut self) -> Option<&mut Self>{
         match self{
-            Node::Operator { denied: _, op, left, right } => {
+            Node::Operator { neg: _, op, left, right } => {
                 if op.is_bicon(){
                     *op = Operator::AND;
                     let old_left = left.clone();
                     let old_right = right.clone();
-                    *left = Box::new(Node::Operator { denied: Negation::default(), op: Operator::CON, left: old_left.clone(), right: old_right.clone() });
-                    *right = Box::new(Node::Operator { denied: Negation::default(), op: Operator::CON, left: old_right, right: old_left });
+                    *left = Box::new(Node::Operator { neg: Negation::default(), op: Operator::CON, left: old_left.clone(), right: old_right.clone() });
+                    *right = Box::new(Node::Operator { neg: Negation::default(), op: Operator::CON, left: old_right, right: old_left });
 
                     return Some(self);
                 }else if op.is_and(){
-                    if let Node::Operator{denied: ld, op: l_op, left: ll, right: lr} = *left.clone(){
-                        if let Node::Operator { denied: rd, op: r_op, left: rl, right: rr } = *right.clone(){
+                    if let Node::Operator{neg: ld, op: l_op, left: ll, right: lr} = *left.clone(){
+                        if let Node::Operator { neg: rd, op: r_op, left: rl, right: rr } = *right.clone(){
                             if l_op.is_con() && r_op.is_con() && !ld.is_denied() && !rd.is_denied() && ll == rr && lr == rl{
                                 *op = Operator::BICON;
                                 *left = ll;
@@ -355,7 +355,7 @@ impl Node{
     /// and handles it accordingly.
     pub fn mat_eq_mono(&mut self) -> Option<&mut Self>{
         match self{
-            Node::Operator { denied, op, left, right } => {
+            Node::Operator { neg: denied, op, left, right } => {
                 if op.is_bicon(){
                     *op = Operator::OR;
                     let mut old_left = left.clone();
@@ -369,10 +369,10 @@ impl Node{
                             old_right.deny();
                         }
                     }
-                    *left = Box::new(Node::Operator { denied: Negation::default(), op: Operator::AND, left: old_left.clone(), right: old_right.clone() });
+                    *left = Box::new(Node::Operator { neg: Negation::default(), op: Operator::AND, left: old_left.clone(), right: old_right.clone() });
                     old_left.deny();
                     old_right.deny();
-                    *right = Box::new(Node::Operator { denied: Negation::default(), op: Operator::AND, left: old_left, right: old_right });
+                    *right = Box::new(Node::Operator { neg: Negation::default(), op: Operator::AND, left: old_left, right: old_right });
                     return Some(self);
                 }
             },
@@ -384,7 +384,7 @@ impl Node{
     ///Returns a string representation of the current node based on the given notation.
     pub fn print(&self, notation: &OperatorNotation) -> String{
         match self{
-            Self::Operator { denied, op, .. } => {
+            Self::Operator { neg: denied, op, .. } => {
                 let mut s = String::new();
                 if denied.is_denied(){
                     s.push_str(notation.neg());
@@ -394,11 +394,12 @@ impl Node{
                     Operator::OR => s.push_str(notation.or()),
                     Operator::CON => s.push_str(notation.con()),
                     Operator::BICON => s.push_str(notation.bicon()),
+                    Operator::NOT => panic!("Operator nodes cannot be Negation nodes"),
                 }
 
                 s
             }
-            Self::Variable { denied, name, .. } => {
+            Self::Variable { neg: denied, name, .. } => {
                 let mut s = String::new();
                 if denied.is_denied(){
                     s.push_str(notation.neg());

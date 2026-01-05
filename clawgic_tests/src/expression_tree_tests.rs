@@ -2,7 +2,7 @@
 use std::collections::HashMap;
 
 use test_case::test_case;
-use clawgic::{expression_tree::{ExpressionTree, ExpressionTreeError}, operator_notation::OperatorNotation};
+use clawgic::{expression_tree::{ExpressionTree, ExpressionTreeError, node::operator::Operator}, operator_notation::OperatorNotation};
 
 #[test_case("A" ; "single variable")]
 #[test_case("A&B" ; "one connective")]
@@ -492,4 +492,34 @@ fn ncon_neg(){
 fn transposition_neg(){
     let mut tree = ExpressionTree::new("~(~A->~B)").unwrap();
     assert!(tree.transposition_neg().unwrap().lit_eq(&ExpressionTree::new("~(~~B->~~A)").unwrap()))
+}
+
+#[test_case("A&B", Some(Operator::AND) ; "conjunction")]
+#[test_case("~(A&B)", Some(Operator::NOT) ; "conjunction denied")]
+#[test_case("AvB", Some(Operator::OR) ; "disjunction")]
+#[test_case("~(AvB)", Some(Operator::NOT) ; "disjunction denied")]
+#[test_case("A->B", Some(Operator::CON) ; "conditional")]
+#[test_case("~(A->B)", Some(Operator::NOT) ; "conditional denied")]
+#[test_case("(A<->B)", Some(Operator::BICON) ; "biconditional")]
+#[test_case("~(A<->B)", Some(Operator::NOT) ; "biconditional denied")]
+#[test_case("A", None ; "no connective")]
+#[test_case("~A", Some(Operator::NOT) ; "tilde")]
+fn main_connective(expr: &str, op: Option<Operator>){
+    let tree = ExpressionTree::new(expr).unwrap();
+    assert_eq!(tree.main_connective(), op);
+}
+
+#[test_case("A&B", Some(Operator::AND) ; "conjunction")]
+#[test_case("~(A&B)", None ; "conjunction denied")]
+#[test_case("AvB", Some(Operator::OR) ; "disjunction")]
+#[test_case("~(AvB)", None ; "disjunction denied")]
+#[test_case("A->B", Some(Operator::CON) ; "conditional")]
+#[test_case("~(A->B)", None ; "conditional denied")]
+#[test_case("(A<->B)", Some(Operator::BICON) ; "biconditional")]
+#[test_case("~(A<->B)", None ; "biconditional denied")]
+#[test_case("A", None ; "no connective")]
+#[test_case("~A", None ; "tilde")]
+fn main_conn_non_tilde(expr: &str, op: Option<Operator>){
+    let tree = ExpressionTree::new(expr).unwrap();
+    assert_eq!(tree.main_conn_non_tilde(), op);
 }

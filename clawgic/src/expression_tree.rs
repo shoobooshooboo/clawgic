@@ -381,9 +381,9 @@ impl ExpressionTree{
                     Shell::Operator(denied, op) => {
                         let right = Self::construct_tree(shells)?;
                         let left = Self::construct_tree(shells)?;
-                        Node::Operator { denied, op, left: Box::new(left), right: Box::new(right) }
+                        Node::Operator { neg: denied, op, left: Box::new(left), right: Box::new(right) }
                     },
-                    Shell::Variable(denied, name) => Node::Variable { denied, name},
+                    Shell::Variable(denied, name) => Node::Variable { neg: denied, name},
                     Shell::Constant(neg, value) => Node::Constant(neg, value),
                     Shell::Parentheses => return Err(ExpressionTreeError::InvalidParentheses),
                     Shell::Tilde(_) => return Err(ExpressionTreeError::InvalidExpression),
@@ -399,12 +399,12 @@ impl ExpressionTree{
     /// Takes a `Node` and the vars map and does a depth-first-search for every variable, inserting them into the map as they are found.
     fn create_vars(node: & Node, mut vars: HashMap<String, Option<bool>>) -> HashMap<String, Option<bool>>{
         let vars = match node{
-            Node::Operator { denied: _, op: _, left, right } =>{
+            Node::Operator { neg: _, op: _, left, right } =>{
                 let vars = Self::create_vars(left, vars);
                 Self::create_vars(right, vars)
             },
             Node::Constant(..) => vars,
-            Node::Variable { denied: _, name} => {
+            Node::Variable { neg: _, name} => {
                 vars.insert(name.clone(), None);
                 vars
             },
@@ -451,7 +451,7 @@ impl ExpressionTree{
     /// Recursive helper function for `ExpressionTree::replace_variable()`
     fn replace_variable_rec(cur_node: &mut Node, var: &str, new_expression: &ExpressionTree){
         if cur_node.is_variable(){
-            let Node::Variable { denied, name} = cur_node.clone()
+            let Node::Variable { neg: denied, name} = cur_node.clone()
                 else{panic!("this should never happen (in replace_variable_rec())")};
             if var == name{
                 *cur_node = new_expression.root.clone();
@@ -460,7 +460,7 @@ impl ExpressionTree{
                 }
             }
         }else if cur_node.is_operator(){
-            let Node::Operator { denied: _, op: _, left, right } = cur_node 
+            let Node::Operator { neg: _, op: _, left, right } = cur_node 
                 else{panic!("this should never happen (in replace_variable_rec())")};
             Self::replace_variable_rec(left, var, new_expression);
             Self::replace_variable_rec(right, var, new_expression);
@@ -500,7 +500,7 @@ impl ExpressionTree{
     /// Recursive helper function for `ExpressionTree::replace_variable()`
     fn replace_variables_rec(cur_node: &mut Node, vars: &HashMap<String, &ExpressionTree>){
         if cur_node.is_variable(){
-            let Node::Variable { denied, name} = cur_node.clone()
+            let Node::Variable { neg: denied, name} = cur_node.clone()
                 else{panic!("this should never happen (in replace_variable_rec())")};
             match vars.get(&name){
                 Some(new_expression) => {
@@ -512,7 +512,7 @@ impl ExpressionTree{
                 None => (),
             }
         }else if cur_node.is_operator(){
-            let Node::Operator { denied: _, op: _, left, right } = cur_node 
+            let Node::Operator { neg: _, op: _, left, right } = cur_node 
                 else{panic!("this should never happen (in replace_variable_rec())")};
             Self::replace_variables_rec(left, vars);
             Self::replace_variables_rec(right, vars);
@@ -544,9 +544,9 @@ impl ExpressionTree{
             return;
         }
         if cur_node.is_variable() && old.root.is_variable(){
-            let Node::Variable { denied: cur_denied, name: cur_name } = cur_node 
+            let Node::Variable { neg: cur_denied, name: cur_name } = cur_node 
                 else {panic!("this shouldn't be possible (replace_expression_rec)")};
-            let Node::Variable { denied: old_denied, name: old_name } = &old.root
+            let Node::Variable { neg: old_denied, name: old_name } = &old.root
                 else {panic!("this shouldn't be possible (replace_expression_rec)")};
             if old_name == cur_name{
                 let deny = *cur_denied != *old_denied;
@@ -556,9 +556,9 @@ impl ExpressionTree{
                 }
             }
         }else if cur_node.is_operator() && old.root.is_operator(){
-            let Node::Operator { denied: cur_denied, op: cur_op, left: cur_left, right: cur_right } = cur_node
+            let Node::Operator { neg: cur_denied, op: cur_op, left: cur_left, right: cur_right } = cur_node
                 else {panic!("this shouldn't be possible (replace_expression_rec)")};
-            let Node::Operator { denied: old_denied, op: old_op, left: old_left, right: old_right } = &old.root
+            let Node::Operator { neg: old_denied, op: old_op, left: old_left, right: old_right } = &old.root
                 else {panic!("this shouldn't be possible (replace_expression_rec)")};
 
             if *cur_op == *old_op && cur_left == old_left && cur_right == old_right{
@@ -607,7 +607,7 @@ impl ExpressionTree{
     fn prefix_rec(node: &Node, prefix: &mut String, notation: &OperatorNotation){
         prefix.push_str(&node.print(notation));
         match node{
-            Node::Operator { denied: _, op: _, left, right } => {
+            Node::Operator { neg: _, op: _, left, right } => {
                 Self::prefix_rec(left, prefix, notation);
                 Self::prefix_rec(right, prefix, notation);
             }
@@ -630,7 +630,7 @@ impl ExpressionTree{
     /// Recursive helper function for `ExpressionTree::infix().`
     fn infix_rec(node: &Node, infix: &mut String, notation: &OperatorNotation){
         match node{
-            Node::Operator { denied, op: _, left, right } => {
+            Node::Operator { neg: denied, op: _, left, right } => {
                 let mut op = node.print(notation);
                 if denied.is_denied(){
                     //TODO!: make this less ugly
@@ -662,7 +662,7 @@ impl ExpressionTree{
     /// Recursive helper function for `ExpressionTree::monotenize()`.
     fn monotenize_rec(node: &mut Node){
         match &*node{
-            Node::Operator { denied, op, left: _, right: _ } => {
+            Node::Operator { neg: denied, op, left: _, right: _ } => {
                 if (op.is_and() || op.is_or()) && denied.is_denied(){
                     node.demorgans();
                 }else if op.is_con(){
@@ -679,7 +679,7 @@ impl ExpressionTree{
         }
 
         match node{
-            Node::Operator { denied: _, op: _, left, right } => {
+            Node::Operator { neg: _, op: _, left, right } => {
                 Self::monotenize_rec(left);
                 Self::monotenize_rec(right);
             },
@@ -703,7 +703,7 @@ impl ExpressionTree{
 
         Self { 
             vars: self.vars, 
-            root: Node::Operator{denied: Negation::default(), op: node::operator::Operator::AND, left: Box::new(self.root), right: Box::new(second.root)},
+            root: Node::Operator{neg: Negation::default(), op: node::operator::Operator::AND, left: Box::new(self.root), right: Box::new(second.root)},
             value: Cell::new(None),
         }
     }
@@ -716,7 +716,7 @@ impl ExpressionTree{
 
         Self { 
             vars: self.vars, 
-            root: Node::Operator{denied: Negation::default(), op: node::operator::Operator::OR, left: Box::new(self.root), right: Box::new(second.root)},
+            root: Node::Operator{neg: Negation::default(), op: node::operator::Operator::OR, left: Box::new(self.root), right: Box::new(second.root)},
             value: Cell::new(None),
         }
     }
@@ -729,7 +729,7 @@ impl ExpressionTree{
 
         Self { 
             vars: self.vars, 
-            root: Node::Operator{denied: Negation::default(), op: node::operator::Operator::CON, left: Box::new(self.root), right: Box::new(consequent.root)},
+            root: Node::Operator{neg: Negation::default(), op: node::operator::Operator::CON, left: Box::new(self.root), right: Box::new(consequent.root)},
             value: Cell::new(None),
         }
     }
@@ -742,7 +742,7 @@ impl ExpressionTree{
 
         Self { 
             vars: self.vars, 
-            root: Node::Operator{denied: Negation::default(), op: node::operator::Operator::BICON, left: Box::new(self.root), right: Box::new(second.root)},
+            root: Node::Operator{neg: Negation::default(), op: node::operator::Operator::BICON, left: Box::new(self.root), right: Box::new(second.root)},
             value: Cell::new(None),
         }
     }
@@ -1146,6 +1146,47 @@ impl ExpressionTree{
         match self.root.mat_eq_mono(){
             Some(_) => Some(self),
             None => None,
+        }
+    }
+
+    /// Gets the main connective.
+    pub fn main_connective(&self) -> Option<Operator>{
+        match self.root{
+            Node::Operator { neg, op, ..} => {
+                if neg.count() > 0{
+                    Some(Operator::NOT)
+                }else{
+                    Some(op)
+                }
+            },
+            Node::Variable { neg, .. } => {
+                if neg.count() > 0{
+                    Some(Operator::NOT)
+                }else{
+                    None
+                }
+            },
+            Node::Constant(neg, ..) => {
+                if neg.count() > 0{
+                    Some(Operator::NOT)
+                }else{
+                    None
+                }
+            }
+        }
+    }
+
+    /// Gets the main connective (ignoring tildes).
+    pub fn main_conn_non_tilde(&self) -> Option<Operator>{
+        match self.root{
+            Node::Operator { neg, op, ..} => {
+                if neg.count() > 0{
+                    None
+                }else{
+                    Some(op)
+                }
+            },
+           _ => None
         }
     }
 }
