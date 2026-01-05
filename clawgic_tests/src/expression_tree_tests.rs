@@ -469,3 +469,27 @@ fn transposition(){
     assert!(tree.transposition().unwrap().lit_eq(&ExpressionTree::new("~B->~A").unwrap()));
     assert!(tree.transposition().unwrap().lit_eq(&ExpressionTree::new("A->B").unwrap()));
 }
+
+#[test]
+fn demorgans_neg(){
+    let mut tree = ExpressionTree::new("~(~Av~B)").unwrap();
+    assert!(tree.demorgans_neg().unwrap().lit_eq(&ExpressionTree::new("~~(~~A&~~B)").unwrap()))
+}
+
+#[test]
+fn implication_neg(){
+    let mut tree = ExpressionTree::new("~(~Av~B)").unwrap();
+    assert!(tree.implication_neg().unwrap().lit_eq(&ExpressionTree::new("~(~~A->~B)").unwrap()))
+}
+
+#[test]
+fn ncon_neg(){
+    let mut tree = ExpressionTree::new("~(~A&~B)").unwrap();
+    assert!(tree.ncon_neg().unwrap().lit_eq(&ExpressionTree::new("~~(~A->~~B)").unwrap()))
+}
+
+#[test]
+fn transposition_neg(){
+    let mut tree = ExpressionTree::new("~(~A->~B)").unwrap();
+    assert!(tree.transposition_neg().unwrap().lit_eq(&ExpressionTree::new("~(~~B->~~A)").unwrap()))
+}
