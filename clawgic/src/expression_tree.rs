@@ -1039,12 +1039,38 @@ impl ExpressionTree{
         }
     }
 
+    /// Applies demorgan's law to the expression tree if its main connective is
+    /// a conjunction or a disjunction; returns a mutable reference. 
+    /// 
+    /// Otherwise, does nothing and returns `None`.
+    /// 
+    /// Opts for negation over denial.
+    pub fn demorgans_neg(&mut self) -> Option<&mut Self>{
+        match self.root.demorgans_neg(){
+            Some(_) => Some(self),
+            None => None,
+        }
+    }
+
     /// Applies transposition if the main connective (barring tildes)
     /// is a conditional and then returns a mutable reference.
     /// 
     /// otherwise, does nothing and returns `None`.
     pub fn transposition(&mut self) -> Option<&mut Self>{
         match self.root.transposition(){
+            Some(_) => Some(self),
+            None => None,
+        }
+    }
+
+    /// Applies transposition if the main connective (barring tildes)
+    /// is a conditional and then returns a mutable reference.
+    /// 
+    /// otherwise, does nothing and returns `None`.
+    /// 
+    /// Opts for negation over denial.
+    pub fn transposition_neg(&mut self) -> Option<&mut Self>{
+        match self.root.transposition_neg(){
             Some(_) => Some(self),
             None => None,
         }
@@ -1062,12 +1088,39 @@ impl ExpressionTree{
         }
     }
 
+    /// Performs the logical rule of implication on an expression tree
+    /// if its main connective is a conditional operator
+    /// or a disjunction operator; returns a mut reference.
+    /// 
+    /// Otherwise, does nothing and returns None.. 
+    /// 
+    /// Opts for negation over denial.
+    pub fn implication_neg(&mut self) -> Option<&mut Self>{
+        match self.root.implication_neg(){
+            Some(_) => Some(self),
+            None => None,
+        }
+    }
+
     /// Performs the logical rule of Negated Conditional on an expression tree if its
     /// main connective a conditional or a conjuction; returns a mut reference. 
     /// 
     /// Otherwise does nothing and returns `None`.
     pub fn ncon(&mut self) -> Option<&mut Self>{
         match self.root.ncon(){
+            Some(_) => Some(self),
+            None => None,
+        }
+    }
+
+    /// Performs the logical rule of Negated Conditional on an expression tree if its
+    /// main connective a conditional or a conjuction; returns a mut reference. 
+    /// 
+    /// Otherwise does nothing and returns `None`.
+    /// 
+    /// Opts for negation over denial.
+    pub fn ncon_neg(&mut self) -> Option<&mut Self>{
+        match self.root.ncon_neg(){
             Some(_) => Some(self),
             None => None,
         }

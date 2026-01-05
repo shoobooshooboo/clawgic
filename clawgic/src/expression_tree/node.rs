@@ -183,6 +183,28 @@ impl Node{
         None
     }
 
+    /// Applies demorgan's law to the node if it is
+    /// a conjunction or a disjunction; returns a mutable reference.
+    /// 
+    /// Otherwise, does nothing and returns `None`.
+    /// 
+    /// Opts for negating instead of denying
+    pub fn demorgans_neg(&mut self) -> Option<&mut Self>{
+        match self{
+            Node::Operator { denied, op, left, right } => {
+                if op.is_and() || op.is_or(){
+                    *op = if op.is_and() {Operator::OR} else {Operator::AND};
+                    denied.negate();
+                    left.negate();
+                    right.negate();
+                    return Some(self);
+                }
+            },
+            _ => (),
+        }
+        None
+    }
+
     /// Applies transposition if the main connective (barring tildes)
     /// is a conditional and then returns a mutable reference.
     /// 
@@ -193,6 +215,24 @@ impl Node{
         if op.is_con(){
             left.deny();
             right.deny();
+            swap(left, right);
+            return Some(self);
+        }
+        None
+    }
+
+    /// Applies transposition if the main connective (barring tildes)
+    /// is a conditional and then returns a mutable reference.
+    /// 
+    /// otherwise, does nothing and returns `None`.
+    /// 
+    /// Opts for negating instead of denying
+    pub fn transposition_neg(&mut self) -> Option<&mut Self>{
+        let Node::Operator { denied: _, op, left, right } = self
+            else {return None};
+        if op.is_con(){
+            left.negate();
+            right.negate();
             swap(left, right);
             return Some(self);
         }
@@ -216,6 +256,25 @@ impl Node{
         None
     }
 
+    /// Performs the logical rule of implication on a node if it is a conditional operator or a disjunction operator; returns a mut reference.
+    /// 
+    /// Otherwise, does nothing and returns None.. 
+    /// 
+    /// Opts for negating instead of denying
+    pub fn implication_neg(&mut self) -> Option<&mut Self>{
+        match self{
+            Node::Operator { denied: _, op, left, right: _ } => {
+                if op.is_con() || op.is_or(){
+                    *op =  if op.is_con() {Operator::OR} else {Operator::CON};
+                    left.negate();
+                    return Some(self);
+                }
+            },
+            _ => (),
+        }
+        None
+    }
+
     /// Performs the logical rule of Negated Conditional on a node if it is
     /// a conditional or a conjuction; returns a mut reference. 
     /// 
@@ -227,6 +286,27 @@ impl Node{
                     *op = if op.is_con() {Operator::AND} else {Operator::CON};
                     denied.deny();
                     right.deny();
+                    return Some(self);
+                }
+            },
+            _ => (),
+        }
+        None
+    }
+
+    /// Performs the logical rule of Negated Conditional on a node if it is
+    /// a conditional or a conjuction; returns a mut reference. 
+    /// 
+    /// Otherwise does nothing and returns `None`.
+    /// 
+    /// Opts for negating instead of denying
+    pub fn ncon_neg(&mut self) -> Option<&mut Self>{
+        match self{
+            Node::Operator { denied, op, left: _, right } => {
+                if op.is_con() || op.is_and(){
+                    *op = if op.is_con() {Operator::AND} else {Operator::CON};
+                    denied.negate();
+                    right.negate();
                     return Some(self);
                 }
             },
