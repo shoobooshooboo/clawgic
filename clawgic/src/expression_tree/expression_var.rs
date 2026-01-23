@@ -1,4 +1,4 @@
-use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not, Shl, ShlAssign, Shr, ShrAssign};
+use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not, RangeBounds, Shl, ShlAssign, Shr, ShrAssign};
 
 use crate::expression_tree::ExpressionTree;
 
@@ -41,9 +41,20 @@ impl ExpressionVar{
     }
 
     ///Constructs a vec of ExpressionVars enumerated with the given range iff a valid name is given.
-    pub fn new_vars(name: &str, range: std::ops::Range<usize>) -> Result<Vec<ExpressionVar>, ()>{
-        let mut vars = Vec::with_capacity(range.end - range.start);
-        for i in range{
+    pub fn new_vars<R>(name: &str, range: R) -> Result<Vec<ExpressionVar>, ()>
+    where R: RangeBounds<usize>{
+        let start = match range.start_bound(){
+            std::ops::Bound::Included(s) => *s,
+            std::ops::Bound::Excluded(s) => *s,
+            std::ops::Bound::Unbounded => return Err(()),
+        };
+        let end = match range.end_bound(){
+            std::ops::Bound::Included(s) => *s + 1,
+            std::ops::Bound::Excluded(s) => *s,
+            std::ops::Bound::Unbounded => return Err(()),
+        };
+        let mut vars = Vec::with_capacity(end - start);
+        for i in start..end{
             match Self::new(&(name.to_string() + &i.to_string())){
                 Ok(v) => vars.push(v),
                 Err(()) => return Err(())

@@ -12,7 +12,7 @@ fn op_construction(){
     let e = ExpressionVar::new("E").unwrap();
     let expression = (((!&a | &b) & &c) >> &d) ^ &e;
 
-    assert_eq!(expression.infix(None), expected.infix(None));
+    assert!(expression.lit_eq(&expected));
 }
 
 #[test]
@@ -28,6 +28,26 @@ fn assignop_construction(){
     expression &= &c;
     expression >>= &d;
     expression ^= &e;
+    
+    assert!(expression.lit_eq(&expected));
+}
 
-    assert_eq!(expression.infix(None), expected.infix(None));
+#[test]
+fn new_vars_ex(){
+    let expected = ExpressionTree::new("A1 & A2 -> A3").unwrap();
+    let a = ExpressionVar::new_vars("A", 1..4).unwrap();
+
+    let expr = (&a[0] & &a[1]) >> &a[2];
+
+    assert!(expr.lit_eq(&expected));
+}
+
+#[test]
+fn new_vars_in(){
+    let expected = ExpressionTree::new("A1 & A2 -> A3").unwrap();
+    let a = ExpressionVar::new_vars("A", 1..=3).unwrap();
+
+    let expr = (&a[0] & &a[1]) >> &a[2];
+    
+    assert!(expr.lit_eq(&expected));
 }
