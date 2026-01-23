@@ -1,0 +1,21 @@
+current goals 0.7.1:
+- ExpressionVariable. cloneable variable type. way to make one or multiple at a time.
+- make OperatorNotation disallow dangerous notations
+- short-circuit evaluation for expression trees
+- Expression_tree::node();
+
+
+later goals:
+- add predicate logic
+- upgrade documentation
+    - add example code to all functions
+    - add time and space complexities of all functions
+- random expression generator
+- .comm_eq() (tells whether two expressions are commutatively equivalent)
+- mutable and immutable expression trees
+    - rework all of the '_with' functions to use immutable trees to save on space.
+- JIT compiler
+
+- optimize
+- OPTIMIZE
+- OPTIMIZE!!!

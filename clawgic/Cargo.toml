@@ -9,6 +9,3 @@ readme = "../README.md"
 repository = "https://github.com/shoobooshooboo/clawgic"
 license = "MIT OR Apache-2.0"
 keywords = ["logic", "sentential", "propositional"]
-
-[dependencies]
-

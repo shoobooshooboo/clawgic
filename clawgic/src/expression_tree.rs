@@ -1,4 +1,5 @@
 pub mod node;
+pub mod expression_var;
 mod shell;
 
 use shell::Shell;
@@ -693,6 +694,11 @@ impl ExpressionTree{
     /// there's probably just a feature I have yet to add.
     pub fn into_node(self) -> Node{
         self.root
+    }
+
+    /// Returns a reference to the tree's root node.
+    pub fn node(&self) -> &Node{
+        &self.root
     }
 
     ///consumes two trees and returns a tree in the form of self & second.
