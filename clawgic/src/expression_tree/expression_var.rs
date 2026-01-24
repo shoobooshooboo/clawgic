@@ -211,7 +211,22 @@ impl ShrAssign<&ExpressionVar> for ExpressionTree{
     }
 }
 
-///List of enumerated ExpressionVar's
+///List of enumerated ExpressionVar's. 
+/// 
+/// Can be indexed two different ways depending on construction.
+/// ```
+/// //relative indexing
+/// let a = ExpressionVars::new("A", 1..=3, true).unwrap();
+/// assert_eq!(a[1].name(), "A1");
+/// assert_eq!(a[2].name(), "A2");
+/// assert_eq!(a[3].name(), "A3");
+/// 
+/// //absolute indexing
+/// let a = ExpressionVars::new("A", 1..=3, false).unwrap();
+/// assert_eq!(a[0].name(), "A1");
+/// assert_eq!(a[1].name(), "A2");
+/// assert_eq!(a[2].name(), "A3");
+/// ```
 #[derive(Clone, Debug)]
 pub struct ExpressionVars{
     vars: Vec<ExpressionVar>,
@@ -219,6 +234,8 @@ pub struct ExpressionVars{
 }
 
 impl ExpressionVars{
+    ///Constructs a new ExpressionVars. Type of indexing is decided by 
+    /// `relative_index` parameter.
     pub fn new<R>(name: &str, range: R, relative_index: bool) -> Result<Self, ()>
     where R: RangeBounds<usize>{
         let start = match range.start_bound(){
@@ -245,12 +262,19 @@ impl ExpressionVars{
         })
     }
 
+    ///Gets lowest index.
     pub fn start(&self) -> usize{
         self.bounds.unwrap_or((0,0)).0
     }
 
+    ///Gets highest index.
     pub fn end(&self) -> usize{
         self.bounds.unwrap_or((0, self.vars.len() - 1)).1
+    }
+
+    ///creates an iterator of all ExpressionVars.
+    pub fn iter(&self) -> std::slice::Iter<'_, ExpressionVar>{
+        self.vars.iter()
     }
 }
 
@@ -262,5 +286,13 @@ impl Index<usize> for ExpressionVars{
             Some((start, _)) => &self.vars[index - start],
             None => &self.vars[index],
         }
+    }
+}
+
+impl IntoIterator for ExpressionVars{
+    type Item = ExpressionVar;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.vars.into_iter()
     }
 }
