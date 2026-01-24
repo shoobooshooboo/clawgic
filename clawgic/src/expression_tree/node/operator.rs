@@ -6,6 +6,8 @@
 /// `Operator` is all encompassing and can be used for extra things.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Operator{
+    /// Negation. ~
+    NOT,
     /// Conjunction. &, ^
     AND,
     /// Disjunction. v
@@ -14,8 +16,7 @@ pub enum Operator{
     CON,
     /// Biconditional. <->
     BICON,
-    /// Negation. ~
-    NOT,
+    
 }
 
 impl Operator{
@@ -93,6 +94,34 @@ impl Operator{
             Self::OR => left || right,
             Self::CON => !left || right,
             Self::BICON => left == right,
+            Self::NOT => panic!("Operator nodes cannot be Negation nodes"),
+        }
+    }
+
+    /// Attempts short-circuit evaluation with only one boolean.
+    /// 
+    /// # ex
+    /// ```
+    /// use clawgic::expression_tree::node::operator::Operator;
+    /// let op = Operator::AND;
+    /// assert_eq!(op.short_circuit(false), Some(false));
+    /// assert_eq!(op.short_circuit(true), None);
+    /// let op = Operator::OR;
+    /// assert_eq!(op.short_circuit(false), None);
+    /// assert_eq!(op.short_circuit(true), Some(true));
+    /// let op = Operator::CON;
+    /// assert_eq!(op.short_circuit(false), Some(true));
+    /// assert_eq!(op.short_circuit(true), None);
+    /// let op = Operator::BICON;
+    /// assert_eq!(op.short_circuit(false), None);
+    /// assert_eq!(op.short_circuit(true), None);
+    /// ```
+    pub fn short_circuit(&self, left: bool) -> Option<bool>{
+        match self{
+            Self::AND => if !left {Some(false)} else {None},
+            Self::OR => if left {Some(true)} else {None},
+            Self::CON => if !left {Some(true)} else {None} ,
+            Self::BICON => None,
             Self::NOT => panic!("Operator nodes cannot be Negation nodes"),
         }
     }

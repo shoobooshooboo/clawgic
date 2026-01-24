@@ -1,17 +1,8 @@
-//this enum is so I can avoid the overhead of a hashmap.
-enum OpType{
-    Neg,
-    And,
-    Or,
-    Con,
-    Bicon,
-
-    N, //number of OpType enums
-}
+use crate::expression_tree::node::operator::Operator;
 
 ///Contains a set of symbols for printing `ExpressionTree`s. Used in certain `ExpressionTree` functions to customize expression printing.
 pub struct OperatorNotation{
-    map: [String; OpType::N as usize],
+    map: [String; 5],
 }
 
 impl OperatorNotation{
@@ -141,54 +132,65 @@ impl OperatorNotation{
         }
     }
 
-    ///Gets the symbol for the conjunction operator.
-    pub fn and(&self) -> &str{
-        &self.map[OpType::And as usize]
+    ///Returns the notation of the given operator.
+    pub fn get_notation(&self, op: Operator) -> &str{
+        &self.map[op as usize]
     }
 
-    ///Sets the symbol for the conjunction operator.
-    pub fn set_and(&mut self, symbol: String){
-        self.map[OpType::And as usize] = symbol;
+    ///Returns the operator that matches the given notation (if there is any)
+    pub fn get_operator(&self, notation: &str) -> Option<Operator>{
+        for (i, n) in self.map.iter().enumerate(){
+            if notation == n{
+                return Some(match i{
+                    0 => Operator::NOT,
+                    1 => Operator::AND,
+                    2 => Operator::OR,
+                    3 => Operator::CON,
+                    4 => Operator::BICON,
+                    _ => panic!("Unsupported operator inside of set_notation"),
+                });
+            }
+        }
+        None
     }
 
-    //Gets the symbol for the disjunction operator.
-    pub fn or(&self) -> &str{
-        &self.map[OpType::Or as usize]
+    ///Returns the operator that appears at the beginning of the string.
+    pub fn get_prefix_operator(&self, expression: &str) -> Option<Operator>{
+        for (i, n) in self.map.iter().enumerate(){
+            if expression.starts_with(n){
+                return Some(match i{
+                    0 => Operator::NOT,
+                    1 => Operator::AND,
+                    2 => Operator::OR,
+                    3 => Operator::CON,
+                    4 => Operator::BICON,
+                    _ => panic!("Unsupported operator inside of set_notation"),
+                });
+            }
+        }
+        None
     }
 
-    ///Sets the symbol for the disjunction operator.
-    pub fn set_or(&mut self, symbol: String){
-        self.map[OpType::Or as usize] = symbol;
-    }
-
-    //Gets the symbol for the negation operator.
-    pub fn neg(&self) -> &str{
-        &self.map[OpType::Neg as usize]
-    }
-
-    ///Sets the symbol for the negation operator.
-    pub fn set_neg(&mut self, symbol: String){
-        self.map[OpType::Neg as usize] = symbol;
-    }
-
-    //Gets the symbol for the conditional operator.
-    pub fn con(&self) -> &str{
-        &self.map[OpType::Con as usize]
-    }
-
-    ///Sets the symbol for the conditional operator.
-    pub fn set_con(&mut self, symbol: String){
-        self.map[OpType::Con as usize] = symbol;
-    }
-
-    //Gets the symbol for the biconditional operator.
-    pub fn bicon(&self) -> &str{
-        &self.map[OpType::Bicon as usize]
-    }
-
-    ///Sets the symbol for the biconditional operator.
-    pub fn set_bicon(&mut self, symbol: String){
-        self.map[OpType::Bicon as usize] = symbol;
+    /// Sets the notation of an operator and returns Ok(()) if all goes well.
+    /// 
+    /// If there's a conflict with the new notation and a pre-existing notation,
+    /// returns the operator there's a conflict with.
+    pub fn set_notation(&mut self, op: Operator, notation: String) -> Result<(), Operator>{
+        for (i, n) in self.map.iter().enumerate().skip_while(|(j, _)| *j == op as usize){
+            if notation.starts_with(n) || n.starts_with(&notation){
+                return Err(match i{
+                    0 => Operator::NOT,
+                    1 => Operator::AND,
+                    2 => Operator::OR,
+                    3 => Operator::CON,
+                    4 => Operator::BICON,
+                    _ => panic!("Unsupported operator inside of set_notation"),
+                });
+            }
+        }
+        
+        self.map[op as usize] = notation;
+        Ok(())
     }
 }
 

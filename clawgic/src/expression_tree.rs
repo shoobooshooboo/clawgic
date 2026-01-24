@@ -111,9 +111,9 @@ impl ExpressionTree{
         while !expression.is_empty(){
             expression = expression.trim_start();
             let mut negation = Negation::default();
-            while expression.starts_with(notation.neg()){
+            while expression.starts_with(notation.get_notation(Operator::NOT)){
                 negation.negate();
-                expression = &expression[notation.neg().as_bytes().len()..];
+                expression = &expression[notation.get_notation(Operator::NOT).as_bytes().len()..];
             }
 
             if expression.starts_with("TRUE"){
@@ -153,13 +153,9 @@ impl ExpressionTree{
                 }
                 shells.push(Shell::Variable(negation, expression[0..chars_consumed].to_string()));
             }
-            else if expression.starts_with(notation.and()) || expression.starts_with(notation.or()) || 
-                    expression.starts_with(notation.con()) || expression.starts_with(notation.bicon()){
-                let op: Operator = 
-                    if expression.starts_with(notation.and()) {chars_consumed = notation.and().as_bytes().len(); Operator::AND} 
-                    else if expression.starts_with(notation.or()) {chars_consumed = notation.or().as_bytes().len(); Operator::OR}
-                    else if expression.starts_with(notation.con()) {chars_consumed = notation.con().as_bytes().len(); Operator::CON}
-                    else /*if expression.starts_with(notation.bicon())*/{chars_consumed = notation.bicon().as_bytes().len(); Operator::BICON};
+            else if notation.get_prefix_operator(expression).is_some(){
+                let op: Operator = notation.get_prefix_operator(expression).unwrap();
+                chars_consumed = notation.get_notation(op).as_bytes().len();
                     
                 match operators.last(){
                     None => operators.push(Shell::Operator(Negation::default(), op)),
@@ -635,9 +631,9 @@ impl ExpressionTree{
                 let mut op = node.print(notation);
                 if denied.is_denied(){
                     //TODO!: make this less ugly
-                    infix.push_str(&notation.neg().repeat(denied.count() as usize));
+                    infix.push_str(&notation.get_notation(Operator::NOT).repeat(denied.count() as usize));
                     
-                    op = op.chars().skip(notation.neg().chars().count() * denied.count() as usize).collect();
+                    op = op.chars().skip(notation.get_notation(Operator::NOT).chars().count() * denied.count() as usize).collect();
                 }
                 infix.push('(');
                 Self::infix_rec(left, infix, notation);

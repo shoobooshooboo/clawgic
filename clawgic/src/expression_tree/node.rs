@@ -73,9 +73,12 @@ impl Node{
     pub fn evaluate(&self, vars: &HashMap<String, Option<bool>>) -> Result<bool, ExpressionTreeError>{
         match self{
             Self::Operator{op, neg: denied, left, right} => {
-                let result = op.execute(left.evaluate(vars)?, right.evaluate(vars)?);
-                if denied.is_denied() {Ok(!result)}
-                else {Ok(result)}
+                let left_result = left.evaluate(vars)?;
+                let result = match op.short_circuit(left_result){
+                    Some(b) => b,
+                    None => op.execute(left_result, right.evaluate(vars)?),
+                };
+                Ok(result != denied.is_denied())
             }
             Self::Variable { neg: denied, name} =>{
                 let result = match vars.get(name){
@@ -93,13 +96,17 @@ impl Node{
         }
     }
 
-    ///evaluates the tree with a specific set of variables.
+    /// evaluates the tree with a specific set of concrete variables.
     /// 
     /// If some variable is not present in the map, returns `ExpressionTreeError::UninitualizedVariable`
     pub fn evaluate_with_vars(&self, vars: &HashMap<String, bool>) -> Result<bool, ExpressionTreeError>{
         match self{
             Self::Operator{op, neg: denied, left, right} => {
-                let result = op.execute(left.evaluate_with_vars(vars)?, right.evaluate_with_vars(vars)?);
+                let left_result = left.evaluate_with_vars(vars)?;
+                let result = match op.short_circuit(left_result){
+                    Some(b) => b,
+                    None => op.execute(left_result, right.evaluate_with_vars(vars)?),
+                };
                 Ok(result != denied.is_denied())
             }
             Self::Variable { neg: denied, name} =>{
@@ -387,22 +394,16 @@ impl Node{
             Self::Operator { neg: denied, op, .. } => {
                 let mut s = String::new();
                 if denied.is_denied(){
-                    s.push_str(notation.neg());
+                    s.push_str(notation.get_notation(Operator::NOT));
                 }
-                match op{
-                    Operator::AND => s.push_str(notation.and()),
-                    Operator::OR => s.push_str(notation.or()),
-                    Operator::CON => s.push_str(notation.con()),
-                    Operator::BICON => s.push_str(notation.bicon()),
-                    Operator::NOT => panic!("Operator nodes cannot be Negation nodes"),
-                }
+                s.push_str(notation.get_notation(*op));
 
                 s
             }
             Self::Variable { neg: denied, name, .. } => {
                 let mut s = String::new();
                 if denied.is_denied(){
-                    s.push_str(notation.neg());
+                    s.push_str(notation.get_notation(Operator::NOT));
                 }
                 s.push_str(name);
                 s
@@ -410,7 +411,7 @@ impl Node{
             Self::Constant(denied, b) => {
                 let mut s = String::new();
                 for _ in 0..denied.count(){
-                    s.push_str(notation.neg())
+                    s.push_str(notation.get_notation(Operator::NOT))
                 }
                 s + 
                 if *b{

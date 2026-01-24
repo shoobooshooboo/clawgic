@@ -411,11 +411,11 @@ fn notation_printing(){
     let tree = ExpressionTree::new("(A1&~B)v~C->(D<->E)").unwrap();
     let mut notation = OperatorNotation::bits_ascii();
     assert_eq!(tree.infix(Some(&notation)), "((A1*~B)+~C)->(D<->E)", "1");
-    notation.set_and("&&".to_string());
-    notation.set_neg("?".to_string());
-    notation.set_or("||".to_string());
-    notation.set_con("0-0".to_string());
-    notation.set_bicon(":p".to_string());
+    let _ = notation.set_notation(Operator::AND, "&&".to_string());
+    let _ = notation.set_notation(Operator::NOT, "?".to_string());
+    let _ = notation.set_notation(Operator::OR, "||".to_string());
+    let _ = notation.set_notation(Operator::CON, "0-0".to_string());
+    let _ = notation.set_notation(Operator::BICON, ":p".to_string());
     assert_eq!(tree.infix(Some(&notation)), "((A1&&?B)||?C)0-0(D:pE)", "2");
 }
 
@@ -423,11 +423,11 @@ fn notation_printing(){
 #[test_case("(A1 and notB)or notC if(D bicon E)", "(A1&~B)v~C->(D<->E)", ["not", "and", "or", "if", "bicon"] ; "lowercase words")]
 fn new_with_notation(expr: &str, expected: &str, operators: [&str ; 5]){
     let mut notation = OperatorNotation::default();
-    notation.set_neg(operators[0].to_string());
-    notation.set_and(operators[1].to_string());
-    notation.set_or(operators[2].to_string());
-    notation.set_con(operators[3].to_string());
-    notation.set_bicon(operators[4].to_string());
+    let _ = notation.set_notation(Operator::NOT, operators[0].to_string());
+    let _ = notation.set_notation(Operator::AND, operators[1].to_string());
+    let _ = notation.set_notation(Operator::OR, operators[2].to_string());
+    let _ = notation.set_notation(Operator::CON, operators[3].to_string());
+    let _ = notation.set_notation(Operator::BICON, operators[4].to_string());
     let t1 = ExpressionTree::new_with_notation(expr, &notation).unwrap();
     let t2 = ExpressionTree::new(expected).unwrap();
 

@@ -1,9 +1,10 @@
 current goals 0.7.1:
 X ExpressionVariable. cloneable variable type. way to make one or multiple at a time.
-    - make ExpressionVars it's own type to handle indexing nicer
+    X make ExpressionVars it's own type to handle indexing nicer
 - make OperatorNotation disallow dangerous notations
-- short-circuit evaluation for expression trees
+X short-circuit evaluation for expression trees
 X Expression_tree::node();
+- update README.md to include ExpressionVar/s and OperatorNotation restrictions
 
 
 later goals:
