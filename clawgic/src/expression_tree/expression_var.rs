@@ -1,12 +1,6 @@
-use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not, RangeBounds, Shl, ShlAssign, Shr, ShrAssign};
+use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Index, Not, RangeBounds, Shl, ShlAssign, Shr, ShrAssign};
 
 use crate::expression_tree::ExpressionTree;
-
-#[derive(Clone, Debug)]
-pub struct ExpressionVar{
-    name: String,
-    expr: ExpressionTree,
-}
 
 /// Atomic Variable for an ExpressionTree. Not necessary for constructing a tree, but very helpful.
 /// 
@@ -21,6 +15,12 @@ pub struct ExpressionVar{
 /// let expr2 = a.expr() & b.expr();
 /// assert!(expr1.lit_eq(&expr2) && ExpressionTree::new("A&B").unwrap().lit_eq(&expr1))
 /// ```
+#[derive(Clone, Debug)]
+pub struct ExpressionVar{
+    name: String,
+    expr: ExpressionTree,
+}
+
 impl ExpressionVar{
     ///Constructs and returns an ExpressionVar iff a valid name is given.
     pub fn new(name: &str) -> Result<ExpressionVar, ()>{
@@ -38,30 +38,6 @@ impl ExpressionVar{
         }
 
         Ok(Self {expr:  ExpressionTree::new(&name).unwrap(), name})
-    }
-
-    ///Constructs a vec of ExpressionVars enumerated with the given range iff a valid name is given.
-    pub fn new_vars<R>(name: &str, range: R) -> Result<Vec<ExpressionVar>, ()>
-    where R: RangeBounds<usize>{
-        let start = match range.start_bound(){
-            std::ops::Bound::Included(s) => *s,
-            std::ops::Bound::Excluded(s) => *s,
-            std::ops::Bound::Unbounded => return Err(()),
-        };
-        let end = match range.end_bound(){
-            std::ops::Bound::Included(s) => *s + 1,
-            std::ops::Bound::Excluded(s) => *s,
-            std::ops::Bound::Unbounded => return Err(()),
-        };
-        let mut vars = Vec::with_capacity(end - start);
-        for i in start..end{
-            match Self::new(&(name.to_string() + &i.to_string())){
-                Ok(v) => vars.push(v),
-                Err(()) => return Err(())
-            }
-        }
-
-        Ok(vars)
     }
 
     ///Returns a reference to the name of the ExpressionVar
@@ -232,5 +208,59 @@ impl Shr<&ExpressionVar> for ExpressionTree{
 impl ShrAssign<&ExpressionVar> for ExpressionTree{
     fn shr_assign(&mut self, rhs: &ExpressionVar) {
         *self >>= rhs.expr();
+    }
+}
+
+///List of enumerated ExpressionVar's
+#[derive(Clone, Debug)]
+pub struct ExpressionVars{
+    vars: Vec<ExpressionVar>,
+    bounds: Option<(usize, usize)>,
+}
+
+impl ExpressionVars{
+    pub fn new<R>(name: &str, range: R, relative_index: bool) -> Result<Self, ()>
+    where R: RangeBounds<usize>{
+        let start = match range.start_bound(){
+            std::ops::Bound::Included(s) => *s,
+            std::ops::Bound::Excluded(s) => *s + 1,
+            std::ops::Bound::Unbounded => return Err(()),
+        };
+        let end = match range.end_bound(){
+            std::ops::Bound::Included(s) => *s,
+            std::ops::Bound::Excluded(s) => *s - 1,
+            std::ops::Bound::Unbounded => return Err(()),
+        };
+        let mut vars = Vec::with_capacity(end - start);
+        for i in start..=end{
+            match ExpressionVar::new(&(name.to_string() + &i.to_string())){
+                Ok(v) => vars.push(v),
+                Err(()) => return Err(())
+            }
+        }
+
+        Ok(Self{
+            vars, 
+            bounds: if relative_index{Some((start, end))} else {None},
+        })
+    }
+
+    pub fn start(&self) -> usize{
+        self.bounds.unwrap_or((0,0)).0
+    }
+
+    pub fn end(&self) -> usize{
+        self.bounds.unwrap_or((0, self.vars.len() - 1)).1
+    }
+}
+
+impl Index<usize> for ExpressionVars{
+    type Output = ExpressionVar;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        match self.bounds{
+            Some((start, _)) => &self.vars[index - start],
+            None => &self.vars[index],
+        }
     }
 }

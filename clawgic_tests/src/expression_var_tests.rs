@@ -1,6 +1,7 @@
 #![cfg(test)]
+use test_case::test_case;
 
-use clawgic::expression_tree::{ExpressionTree, expression_var::ExpressionVar};
+use clawgic::expression_tree::{ExpressionTree, expression_var::{ExpressionVar, ExpressionVars}};
 
 #[test]
 fn op_construction(){
@@ -35,9 +36,9 @@ fn assignop_construction(){
 #[test]
 fn new_vars_ex(){
     let expected = ExpressionTree::new("A1 & A2 -> A3").unwrap();
-    let a = ExpressionVar::new_vars("A", 1..4).unwrap();
+    let a = ExpressionVars::new("A", 1..4, true).unwrap();
 
-    let expr = (&a[0] & &a[1]) >> &a[2];
+    let expr = (&a[1] & &a[2]) >> &a[3];
 
     assert!(expr.lit_eq(&expected));
 }
@@ -45,9 +46,40 @@ fn new_vars_ex(){
 #[test]
 fn new_vars_in(){
     let expected = ExpressionTree::new("A1 & A2 -> A3").unwrap();
-    let a = ExpressionVar::new_vars("A", 1..=3).unwrap();
+    let a = ExpressionVars::new("A", 1..=3, true).unwrap();
 
-    let expr = (&a[0] & &a[1]) >> &a[2];
+    let expr = (&a[1] & &a[2]) >> &a[3];
     
     assert!(expr.lit_eq(&expected));
+}
+
+#[test]
+fn relative_index_normal(){
+    let a = ExpressionVars::new("A", 1..=3, true).unwrap();
+    let _ = &a[1];
+    let _ = &a[2];
+    let _ = &a[3];
+}
+
+#[should_panic]
+#[test_case( 0 ; "too low")]
+#[test_case( 4 ; "too high")]
+fn relative_index_panic(i: usize){
+    let a = ExpressionVars::new("A", 1..=3, true).unwrap();
+    let _ = &a[i];
+}
+
+#[test]
+fn absolute_index_normal(){
+    let a = ExpressionVars::new("A", 1..=3, false).unwrap();
+    let _ = &a[0];
+    let _ = &a[1];
+    let _ = &a[2];
+}
+
+#[test]
+#[should_panic]
+fn absolute_index_panic(){
+    let a = ExpressionVars::new("A", 1..=3, false).unwrap();
+    let _ = &a[3];
 }
