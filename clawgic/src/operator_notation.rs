@@ -174,9 +174,20 @@ impl OperatorNotation{
     /// Sets the notation of an operator and returns Ok(()) if all goes well.
     /// 
     /// If there's a conflict with the new notation and a pre-existing notation,
-    /// returns the operator there's a conflict with.
+    /// returns the operator there's a conflict with. A conflict occurs when
+    /// one notation is the prefix to another notation.
+    /// 
+    /// ```
+    /// use clawgic::prelude::*;
+    /// let mut notation = OperatorNotation::ascii(); // ~ & v -> <->
+    /// //Technically conflicts with AND, but that's fine since it's being replaced anyway.
+    /// assert_eq!(notation.set_notation(Operator::AND, "&&".to_string()), Ok(()));
+    /// //Conflicts with NOT, so it's not allowed.
+    /// assert_eq!(notation.set_notation(Operator::CON, "~>".to_string()), Err(Operator::NOT));
+    /// ```
     pub fn set_notation(&mut self, op: Operator, notation: String) -> Result<(), Operator>{
-        for (i, n) in self.map.iter().enumerate().skip_while(|(j, _)| *j == op as usize){
+        for (i, n) in self.map.iter().enumerate(){
+            if i == op as usize{ continue; }
             if notation.starts_with(n) || n.starts_with(&notation){
                 return Err(match i{
                     0 => Operator::NOT,

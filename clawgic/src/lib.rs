@@ -3,4 +3,6 @@ pub mod expression_tree;
 
 pub mod operator_notation;
 
+pub mod prelude;
+
 //∧ ∨ ¬ ➞ ⟷ ⋅
