@@ -205,14 +205,15 @@ impl OperatorNotation{
     }
 }
 
-/// Constructs the default `OperatorNotation`:
-/// 
-/// * conjunction &
-/// * disjunction ∨
-/// * negation ¬
-/// * conditional ➞
-/// * biconditional ⟷
+
 impl Default for OperatorNotation{
+    /// Constructs the default `OperatorNotation`:
+    /// 
+    /// * conjunction &
+    /// * disjunction ∨
+    /// * negation ¬
+    /// * conditional ➞
+    /// * biconditional ⟷
     fn default() -> Self {
         Self { map: [
             "¬".to_string(),

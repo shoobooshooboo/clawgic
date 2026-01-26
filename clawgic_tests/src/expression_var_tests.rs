@@ -1,7 +1,7 @@
 #![cfg(test)]
 use test_case::test_case;
 
-use clawgic::expression_tree::{ExpressionTree, expression_var::{ExpressionVar, ExpressionVars}};
+use clawgic::prelude::*;
 
 #[test]
 fn op_construction(){
