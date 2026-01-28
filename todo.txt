@@ -1,23 +1,36 @@
-current goals 0.7.1:
-X ExpressionVariable. cloneable variable type. way to make one or multiple at a time.
-    X make ExpressionVars it's own type to handle indexing nicer
-X make OperatorNotation disallow dangerous notations
-X short-circuit evaluation for expression trees
-X Expression_tree::node();
-X prelude added.
-- update README.md to include ExpressionVar/s and OperatorNotation restrictions
+ROADMAP
+
+current goals v0.8.0 (predicate logic update titled: "the big one"):
+- add predicate logic
+    - replace variables with predicates
+    - change shunting-yard to accomodate predicates
+##TEST##
+    - replace ExpressionVar with ExpressionPredicate
+##TEST##
+    - create Context/Universe struct to hold truth values and constants.
+##TEST##
+    - add Operator::Universal and Operator::Existential
+##TEST##
+    - add ExpressionTree::universal() and ExpressionTree::existential()
+    - add ExpressionTree/Node::quant_exch()
+##TEST##
+    - update README.md
 
 
 later goals:
-- add predicate logic
+v0.8.1 (speedup update, titled: "from tortoise to hare"):
+- random expression generator (do this first for performance benchmarking)
+- JIT compiler
 - upgrade documentation
     - add example code to all functions
     - add time and space complexities of all functions
-- random expression generator
-- .comm_eq() (tells whether two expressions are commutatively equivalent)
-- mutable and immutable expression trees
+
+v0.9.0 (immutable trees update titled: "hands off that tree!"):
+- make immutable expression trees
     - rework all of the '_with' functions to use immutable trees to save on space.
-- JIT compiler
+
+whenever (unimportant and complicated):
+- .comm_eq() (tells whether two expressions are commutatively equivalent)
 
 - optimize
 - OPTIMIZE
