@@ -4,3 +4,4 @@ pub use crate::ClawgicError;
 pub use crate::expression_tree::expression_var::ExpressionVar;
 pub use crate::expression_tree::expression_var::ExpressionVars;
 pub use crate::expression_tree::node::operator::Operator;
+pub use crate::expression_tree::node::sentence::{Predicate, Sentence};

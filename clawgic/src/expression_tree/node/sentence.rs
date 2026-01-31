@@ -2,7 +2,7 @@ use crate::ClawgicError;
 
 /// Predicate from prediccate (first order) logic.
 /// Has a name and an arity (number of vars that it takes).
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Predicate{
     ///Name of the predicate
     name: String,
@@ -49,7 +49,9 @@ impl Predicate{
     }
 }
 
+/// A predicate logic atomic sentence.
 /// The combination of a predicate and a set of variables.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Sentence{
     ///The identifying name and arity of the predicate
     predicate: Predicate,
@@ -59,14 +61,65 @@ pub struct Sentence{
 
 impl Sentence{
     /// Creates a new sentence iff all vars have valid names (and there are the right number of vars).
-    /// 
-    /// If a variable has an invalid name, will return Err(n) where
-    /// the variable with the invalid name is vars[n].
     pub fn new(predicate: &Predicate, vars: &Vec<String>) -> Result<Self, ClawgicError>{
-        if vars.len() != predicate.arity{
+        if vars.len() < predicate.arity{
+            return Err(ClawgicError::TooFewVariables);
+        }
+        if vars.len() > predicate.arity{
+            return Err(ClawgicError::TooManyVariables);
+        }
 
+        for v in vars{
+            let name = v.trim().to_string();
+            let mut chars = name.chars();
+            let first = chars.next();
+            if first.is_none_or(|c| !c.is_lowercase()){
+                return Err(ClawgicError::InvalidVariableName(name));
+            }
+
+            for c in chars{
+                if !c.is_numeric(){
+                    return Err(ClawgicError::InvalidVariableName(name));
+                }
+            }
         }
 
         Ok(Self{predicate: predicate.clone(), vars: vars.clone()})
+    }
+
+    ///Gets the predicate.
+    pub fn predicate(&self) -> &Predicate{
+        &self.predicate
+    }
+
+    ///Gets the predicates name.
+    pub fn name(&self) -> &str{
+        &self.predicate.name
+    }
+
+    ///Gets the predicates arity.
+    pub fn arity(&self) -> usize{
+        self.predicate.arity
+    }
+
+    ///Gets all the vars.
+    pub fn vars(&self) -> &Vec<String>{
+        &self.vars
+    }
+}
+
+impl ToString for Sentence{
+    fn to_string(&self) -> String {
+        let mut s = self.predicate.name.clone();
+        s += "(";
+        for v in self.vars.iter(){
+            s += v;
+            s += ",";
+        }
+        if self.vars.len() > 0{
+            s.pop();
+        }
+        s += ")";
+        s
     }
 }

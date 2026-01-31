@@ -17,6 +17,8 @@ pub enum ClawgicError{
     InvalidPredicateName(String),
     InvalidVariableName(String),
     AmbiguousExpression,
+    TooFewVariables,
+    TooManyVariables,
 }
 
 impl std::fmt::Display for ClawgicError{
@@ -31,6 +33,8 @@ impl std::fmt::Display for ClawgicError{
             Self::InvalidPredicateName(s) => format!("Invalid predicate name \"{s}\""),
             Self::InvalidVariableName(s) => format!("Invalid variable name \"{s}\""),
             Self::AmbiguousExpression => "Ambiguous expression".to_string(),
+            Self::TooFewVariables => "Not enough variables for the given predicate".to_string(),
+            Self::TooManyVariables => "Too many operators for the given predicate".to_string(),
         })
     }
 }
