@@ -2,7 +2,7 @@
 use std::collections::HashMap;
 
 use test_case::test_case;
-use clawgic::{expression_tree::{ExpressionTree, ExpressionTreeError, node::operator::Operator}, operator_notation::OperatorNotation};
+use clawgic::prelude::*;
 
 #[test_case("A" ; "single variable")]
 #[test_case("A&B" ; "one connective")]
@@ -18,17 +18,17 @@ fn new_ok(expression: &str){
     assert!(t.is_ok(), "{:#?}", t);
 }
 
-#[test_case("(A&B", ExpressionTreeError::InvalidParentheses ; "missing close parentheses")]
-#[test_case("A&B)", ExpressionTreeError::InvalidParentheses ; "missing open parentheses")]
-#[test_case("A&b", ExpressionTreeError::LowercaseVariables('b') ; "lowercase variable")]
-#[test_case("(A&B)&", ExpressionTreeError::TooManyOperators ; "Too many operators")]
-#[test_case("AB", ExpressionTreeError::NotEnoughOperators ; "Not enough operators")]
-#[test_case("A&~", ExpressionTreeError::InvalidExpression ; "tilde nothing")]
-#[test_case("A&<-", ExpressionTreeError::UnknownSymbol ; "bad double arrow")]
-#[test_case("A&-", ExpressionTreeError::UnknownSymbol ; "bad single arrow")]
-#[test_case("A&?", ExpressionTreeError::UnknownSymbol ; "random symbol")]
-#[test_case("A&B&C", ExpressionTreeError::AmbiguousExpression ; "ambiguous conjunctions")]
-fn new_err(expression: &str, err: ExpressionTreeError){
+#[test_case("(A&B", ClawgicError::InvalidParentheses ; "missing close parentheses")]
+#[test_case("A&B)", ClawgicError::InvalidParentheses ; "missing open parentheses")]
+#[test_case("A&b", ClawgicError::InvalidPredicateName("b".to_string()) ; "lowercase variable")]
+#[test_case("(A&B)&", ClawgicError::TooManyOperators ; "Too many operators")]
+#[test_case("AB", ClawgicError::NotEnoughOperators ; "Not enough operators")]
+#[test_case("A&~", ClawgicError::InvalidExpression ; "tilde nothing")]
+#[test_case("A&<-", ClawgicError::UnknownSymbol ; "bad double arrow")]
+#[test_case("A&-", ClawgicError::UnknownSymbol ; "bad single arrow")]
+#[test_case("A&?", ClawgicError::UnknownSymbol ; "random symbol")]
+#[test_case("A&B&C", ClawgicError::AmbiguousExpression ; "ambiguous conjunctions")]
+fn new_err(expression: &str, err: ClawgicError){
     let t = ExpressionTree::new(expression);
     assert_eq!(t.unwrap_err(), err);
 }
@@ -202,8 +202,8 @@ fn syn_eq(expr1: &str, expr2: &str, expected: bool){
 
 #[test_case("A&B", Ok(true) ; "over-populating")]
 #[test_case("A&B->C", Ok(true) ; "correct number of vars")]
-#[test_case("A&B->C&D", Err(ExpressionTreeError::UninitializedVariable("D".to_string())) ; "under-populating")]
-fn set_variables(expr: &str, expected: Result<bool, ExpressionTreeError>){
+#[test_case("A&B->C&D", Err(ClawgicError::UninitializedSentence("D".to_string())) ; "under-populating")]
+fn set_variables(expr: &str, expected: Result<bool, ClawgicError>){
     let mut t = ExpressionTree::new(expr).unwrap();
     let mut vars = HashMap::new();
     vars.insert("A".to_string(), true);

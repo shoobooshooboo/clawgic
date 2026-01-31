@@ -10,36 +10,7 @@ use std::collections::HashMap;
 
 use crate::expression_tree::node::negation::Negation;
 use crate::operator_notation::OperatorNotation;
-
-/// All the errors that can occur in making and managing an `ExpressionTree`. 
-#[derive(Debug, PartialEq, Eq)]
-pub enum ExpressionTreeError{
-    UninitializedVariable(String),
-    InvalidExpression,
-    UnknownSymbol,
-    InvalidParentheses,
-    TooManyOperators,
-    NotEnoughOperators,
-    LowercaseVariables(char),
-    AmbiguousExpression,
-}
-
-impl std::fmt::Display for ExpressionTreeError{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self{
-            Self::UninitializedVariable(s) => format!("Uninitialized variable \"{s}\""),
-            Self::InvalidExpression => "Invalid expression".to_string(),
-            Self::UnknownSymbol => "Unknown symbol".to_string(),
-            Self::InvalidParentheses => "Invalid parenthesis".to_string(),
-            Self::TooManyOperators => "Too many operators".to_string(),
-            Self::NotEnoughOperators => "Not enough operators".to_string(),
-            Self::LowercaseVariables(c) => format!("Lowercase variable \"{c}\""),
-            Self::AmbiguousExpression => "Ambiguous expression".to_string(),
-        })
-    }
-}
-
-impl std::error::Error for ExpressionTreeError{}
+use crate::ClawgicError;
 
 /// Expression tree for logical expressions in SL.
 #[derive(Debug, Clone)]
@@ -72,12 +43,12 @@ impl ExpressionTree{
     }
 
     /// Constructs a new expression tree given a string representation of an infix logical expression.
-    pub fn new(expression: &str) -> Result<Self, ExpressionTreeError>{
+    pub fn new(expression: &str) -> Result<Self, ClawgicError>{
         let shells = &mut Self::shunting_yard(expression)?;
         let root = Self::construct_tree(shells)?;
         let vars = Self::create_vars(&root, HashMap::new());
         if !shells.is_empty(){
-            return Err(ExpressionTreeError::NotEnoughOperators);
+            return Err(ClawgicError::NotEnoughOperators);
         }
         Ok(Self{
             vars,
@@ -88,12 +59,12 @@ impl ExpressionTree{
 
     /// Constructs a new expression tree given a string representation of an infix logical expression and an 
     /// `OperatorNotation` detailing the accepted operators.
-    pub fn new_with_notation(expression: &str, notation: &OperatorNotation) -> Result<Self, ExpressionTreeError>{
+    pub fn new_with_notation(expression: &str, notation: &OperatorNotation) -> Result<Self, ClawgicError>{
         let shells = &mut Self::shunting_yard_with_notation(expression, notation)?;
         let root = Self::construct_tree(shells)?;
         let vars = Self::create_vars(&root, HashMap::new());
         if !shells.is_empty(){
-            return Err(ExpressionTreeError::NotEnoughOperators);
+            return Err(ClawgicError::NotEnoughOperators);
         }
         Ok(Self{
             vars,
@@ -103,7 +74,7 @@ impl ExpressionTree{
     }
 
     /// Takes a string representation of an infix logical expression and an `OperatorNotation` and produces a Vec of `Shell`s.
-    fn shunting_yard_with_notation(mut expression: &str, notation: &OperatorNotation) -> Result<Vec<Shell>, ExpressionTreeError>{
+    fn shunting_yard_with_notation(mut expression: &str, notation: &OperatorNotation) -> Result<Vec<Shell>, ClawgicError>{
         expression = expression.trim();
         let mut shells = Vec::<Shell>::new();
         let mut operators = Vec::<Shell>::new();
@@ -133,7 +104,7 @@ impl ExpressionTree{
             let mut chars = expression.chars();
             let mut cur_char = match chars.next(){
                 Some(c) => c,
-                None => return Err(ExpressionTreeError::InvalidExpression),
+                None => return Err(ClawgicError::InvalidExpression),
             };
             let mut chars_consumed = 0;
 
@@ -164,7 +135,7 @@ impl ExpressionTree{
                             if o.precedence() < op.precedence(){
                                 break;
                             }else if o.precedence() == op.precedence(){
-                                return Err(ExpressionTreeError::AmbiguousExpression);
+                                return Err(ClawgicError::AmbiguousExpression);
                             }
                             shells.push(operators.pop().unwrap());
                         }
@@ -185,7 +156,7 @@ impl ExpressionTree{
                     shells.push(operators.pop().unwrap());
                 }
                 if operators.pop().is_none_or(|x| !x.is_parentheses()){
-                    return Err(ExpressionTreeError::InvalidParentheses);
+                    return Err(ClawgicError::InvalidParentheses);
                 }
                 if let Some(Shell::Tilde(n)) = operators.pop_if(|s| s.is_tilde()){
                     match shells.pop(){
@@ -193,19 +164,19 @@ impl ExpressionTree{
                             if let Shell::Operator(_, op) = s{
                                 shells.push(Shell::Operator(n, op));
                             }else{
-                                return Err(ExpressionTreeError::InvalidExpression)
+                                return Err(ClawgicError::InvalidExpression)
                             }
                         },
-                        None => return Err(ExpressionTreeError::InvalidExpression),
+                        None => return Err(ClawgicError::InvalidExpression),
                     }
                 }
                 chars_consumed = 1;
             }
             else{
                 if cur_char.is_lowercase(){
-                    return Err(ExpressionTreeError::LowercaseVariables(cur_char));
+                    return Err(ClawgicError::InvalidPredicateName(cur_char.to_string()));
                 }
-                return Err(ExpressionTreeError::UnknownSymbol);
+                return Err(ClawgicError::UnknownSymbol);
             }
 
             expression = &expression[chars_consumed..];
@@ -221,7 +192,7 @@ impl ExpressionTree{
     /// # Shunting yard algorithm.
     /// 
     /// Takes a string representation of an infix logical expression and produces a Vec of `Shell`s.
-    fn shunting_yard(mut expression: &str) -> Result<Vec<Shell>, ExpressionTreeError>{
+    fn shunting_yard(mut expression: &str) -> Result<Vec<Shell>, ClawgicError>{
         expression = expression.trim();
         let mut shells = Vec::<Shell>::new();
         let mut operators = Vec::<Shell>::new();
@@ -251,7 +222,7 @@ impl ExpressionTree{
             let mut chars = expression.chars();
             let mut cur_char = match chars.next(){
                 Some(c) => c,
-                None => return Err(ExpressionTreeError::InvalidExpression),
+                None => return Err(ClawgicError::InvalidExpression),
             };
             let mut chars_consumed = cur_char.len_utf8();
 
@@ -286,7 +257,7 @@ impl ExpressionTree{
                         loop{
                             cur_char = match chars.next(){
                                 Some(c) => c,
-                                None => return Err(ExpressionTreeError::UnknownSymbol),
+                                None => return Err(ClawgicError::UnknownSymbol),
                             };
                             if cur_char != '-'{
                                 break;
@@ -294,7 +265,7 @@ impl ExpressionTree{
                             chars_consumed += 1
                         }
                         if cur_char != '>'{
-                            return Err(ExpressionTreeError::UnknownSymbol);
+                            return Err(ClawgicError::UnknownSymbol);
                         }
                     }
                     _ /*'-' | '>' */ => {
@@ -302,12 +273,12 @@ impl ExpressionTree{
                         while cur_char == '-'{
                             cur_char = match chars.next(){
                                 Some(c) => c,
-                                None => return Err(ExpressionTreeError::UnknownSymbol),
+                                None => return Err(ClawgicError::UnknownSymbol),
                             };
                             chars_consumed += 1;
                         }
                         if cur_char != '>'{
-                            return Err(ExpressionTreeError::UnknownSymbol);
+                            return Err(ClawgicError::UnknownSymbol);
                         }
                     }
                 }
@@ -318,7 +289,7 @@ impl ExpressionTree{
                             if o.precedence() < op.precedence(){
                                 break;
                             }else if o.precedence() == op.precedence(){
-                                return Err(ExpressionTreeError::AmbiguousExpression);
+                                return Err(ClawgicError::AmbiguousExpression);
                             }
                             shells.push(operators.pop().unwrap());
                         }
@@ -338,7 +309,7 @@ impl ExpressionTree{
                     shells.push(operators.pop().unwrap());
                 }
                 if operators.pop().is_none_or(|x| !x.is_parentheses()){
-                    return Err(ExpressionTreeError::InvalidParentheses);
+                    return Err(ClawgicError::InvalidParentheses);
                 }
                 if let Some(Shell::Tilde(n)) = operators.pop_if(|s| s.is_tilde()){
                     match shells.pop(){
@@ -346,18 +317,18 @@ impl ExpressionTree{
                             if let Shell::Operator(_, op) = s{
                                 shells.push(Shell::Operator(n, op));
                             }else{
-                                return Err(ExpressionTreeError::InvalidExpression)
+                                return Err(ClawgicError::InvalidExpression)
                             }
                         },
-                        None => return Err(ExpressionTreeError::InvalidExpression),
+                        None => return Err(ClawgicError::InvalidExpression),
                     }
                 }
             }
             else{
                 if cur_char.is_lowercase(){
-                    return Err(ExpressionTreeError::LowercaseVariables(cur_char));
+                    return Err(ClawgicError::InvalidPredicateName(cur_char.to_string()));
                 }
-                return Err(ExpressionTreeError::UnknownSymbol);
+                return Err(ClawgicError::UnknownSymbol);
             }
 
             expression = &expression[chars_consumed..];
@@ -371,7 +342,7 @@ impl ExpressionTree{
     }
 
     /// Takes a Vec of `Shell`s, constructs a subtree of `Node`s and returns the root node of that subtree. 
-    fn construct_tree(shells: &mut Vec<Shell>) -> Result<Node, ExpressionTreeError>{
+    fn construct_tree(shells: &mut Vec<Shell>) -> Result<Node, ClawgicError>{
         let node = match shells.pop(){
             Some(s) => {
                 match s {
@@ -382,11 +353,11 @@ impl ExpressionTree{
                     },
                     Shell::Variable(denied, name) => Node::Variable { neg: denied, name},
                     Shell::Constant(neg, value) => Node::Constant(neg, value),
-                    Shell::Parentheses => return Err(ExpressionTreeError::InvalidParentheses),
-                    Shell::Tilde(_) => return Err(ExpressionTreeError::InvalidExpression),
+                    Shell::Parentheses => return Err(ClawgicError::InvalidParentheses),
+                    Shell::Tilde(_) => return Err(ClawgicError::InvalidExpression),
                 }
             },
-            None => return Err(ExpressionTreeError::TooManyOperators),
+            None => return Err(ClawgicError::TooManyOperators),
         };
 
         Ok(node)
@@ -572,7 +543,7 @@ impl ExpressionTree{
     }
 
     /// Attempts to evaluate the tree.
-    pub fn evaluate(&self) -> Result<bool, ExpressionTreeError>{
+    pub fn evaluate(&self) -> Result<bool, ClawgicError>{
         match self.value.get(){
             Some(v) => Ok(v),
             None => {
@@ -589,7 +560,7 @@ impl ExpressionTree{
     }
 
     /// Attempts to evaluate the tree with the given set of variables.
-    pub fn evaluate_with_vars(&self, vars: &HashMap<String, bool>) -> Result<bool, ExpressionTreeError>{
+    pub fn evaluate_with_vars(&self, vars: &HashMap<String, bool>) -> Result<bool, ClawgicError>{
         self.root.evaluate_with_vars(vars)
     }
 

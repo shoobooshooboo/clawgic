@@ -1,10 +1,11 @@
 pub mod operator;
 pub mod negation;
+pub mod sentence;
 
 use std::{collections::HashMap, mem::swap};
 
 use operator::Operator;
-use crate::{expression_tree::{ExpressionTreeError, node::negation::Negation}, operator_notation::OperatorNotation};
+use crate::{expression_tree::{ClawgicError, node::negation::Negation}, operator_notation::OperatorNotation};
 
 /// Nodes for regular logical expression tree.
 /// 
@@ -70,7 +71,7 @@ impl Node{
     /// 
     /// An operator node will attempt to perform its operation on it's left and right operands. 
     /// Will return an ExpressionTreeError if the evaluation of the left or right results in an `Err` value. 
-    pub fn evaluate(&self, vars: &HashMap<String, Option<bool>>) -> Result<bool, ExpressionTreeError>{
+    pub fn evaluate(&self, vars: &HashMap<String, Option<bool>>) -> Result<bool, ClawgicError>{
         match self{
             Self::Operator{op, neg: denied, left, right} => {
                 let left_result = left.evaluate(vars)?;
@@ -84,11 +85,11 @@ impl Node{
                 let result = match vars.get(name){
                     Some(b) => {
                         if b.is_none(){
-                            return Err(ExpressionTreeError::UninitializedVariable(name.clone()))
+                            return Err(ClawgicError::UninitializedSentence(name.clone()))
                         }
                         b.unwrap()
                     },
-                    None => return Err(ExpressionTreeError::UninitializedVariable(name.clone())),
+                    None => return Err(ClawgicError::UninitializedSentence(name.clone())),
                 };
                 Ok(denied.is_denied() != result)
             }
@@ -99,7 +100,7 @@ impl Node{
     /// evaluates the tree with a specific set of concrete variables.
     /// 
     /// If some variable is not present in the map, returns `ExpressionTreeError::UninitualizedVariable`
-    pub fn evaluate_with_vars(&self, vars: &HashMap<String, bool>) -> Result<bool, ExpressionTreeError>{
+    pub fn evaluate_with_vars(&self, vars: &HashMap<String, bool>) -> Result<bool, ClawgicError>{
         match self{
             Self::Operator{op, neg: denied, left, right} => {
                 let left_result = left.evaluate_with_vars(vars)?;
@@ -112,7 +113,7 @@ impl Node{
             Self::Variable { neg: denied, name} =>{
                 let result = match vars.get(name){
                     Some(b) => b.clone(),
-                    None => return Err(ExpressionTreeError::UninitializedVariable(name.clone())),
+                    None => return Err(ClawgicError::UninitializedSentence(name.clone())),
                 };
                 Ok (result != denied.is_denied())
             }
