@@ -3,11 +3,13 @@ ROADMAP
 current goals v0.8.0 (predicate logic update titled: "the big one"):
 - add predicate logic
     - replace variables with predicates
+        X make predicates
+        X make sentences
+        - replace Node::Variable with Node::Sentence 
+    - create Context/Universe struct to hold truth values and constants.
     - change shunting-yard to accomodate predicates
 ##TEST##
-    - replace ExpressionVar with ExpressionPredicate
-##TEST##
-    - create Context/Universe struct to hold truth values and constants.
+    - replace ExpressionVar with ExpressionPredicate (Do we even need them anymore now that we have predicates? maybe just change predicates to work )
 ##TEST##
     - add Operator::Universal and Operator::Existential
 ##TEST##
@@ -16,6 +18,8 @@ current goals v0.8.0 (predicate logic update titled: "the big one"):
 ##TEST##
     - update README.md
 
+design considerations:
+- Sentence (not fully descriptive) vs AtomicSentence (Kinda long) vs ASentence (sounds Async) vs AtomSen(tence) (kinda confusing because it's so short)?
 
 later goals:
 v0.8.1 (speedup update, titled: "from tortoise to hare"):

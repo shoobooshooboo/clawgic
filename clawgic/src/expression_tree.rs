@@ -1,5 +1,6 @@
 pub mod node;
 pub mod expression_var;
+pub mod universe;
 mod shell;
 
 use shell::Shell;
