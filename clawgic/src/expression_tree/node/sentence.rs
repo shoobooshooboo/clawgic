@@ -1,4 +1,4 @@
-use crate::ClawgicError;
+use crate::{ClawgicError, utils};
 
 /// Predicate from prediccate (first order) logic.
 /// Has a name and an arity (number of vars that it takes).
@@ -15,18 +15,9 @@ impl Predicate{
     /// 
     /// Valid names are one uppercase letter followed by any number of digits.
     /// (i.e. "A", "B0", "C123") 
-    pub fn new(name: &str, arity: usize) -> Result<Self, ()>{
-        let name = name.trim().to_string();
-        let mut chars = name.chars();
-        let first = chars.next();
-        if first.is_none_or(|c| !c.is_uppercase()){
-            return Err(());
-        }
-
-        for c in chars{
-            if !c.is_numeric(){
-                return Err(());
-            }
+    pub fn new(name: &str, arity: usize) -> Result<Self, ClawgicError>{
+        if !utils::is_valid_predicate_name(name){
+            return Err(ClawgicError::InvalidVariableName(name.to_string()))
         }
 
         Ok(Self{name: name.to_string(), arity})
@@ -70,17 +61,8 @@ impl Sentence{
         }
 
         for v in vars{
-            let name = v.trim().to_string();
-            let mut chars = name.chars();
-            let first = chars.next();
-            if first.is_none_or(|c| !c.is_lowercase()){
-                return Err(ClawgicError::InvalidVariableName(name));
-            }
-
-            for c in chars{
-                if !c.is_numeric(){
-                    return Err(ClawgicError::InvalidVariableName(name));
-                }
+            if !utils::is_valid_var_name(v){
+                return Err(ClawgicError::InvalidVariableName(v.clone()))
             }
         }
 

@@ -2,11 +2,12 @@ ROADMAP
 
 current goals v0.8.0 (predicate logic update titled: "the big one"):
 - add predicate logic
-    - replace variables with predicates
+    X replace variables with predicates
         X make predicates
         X make sentences
-        - replace Node::Variable with Node::Sentence 
     - create Context/Universe struct to hold truth values and constants.
+##TEST##
+    - replace Node::Variable with Node::Sentence
     - change shunting-yard to accomodate predicates
 ##TEST##
     - replace ExpressionVar with ExpressionPredicate (Do we even need them anymore now that we have predicates? maybe just change predicates to work )

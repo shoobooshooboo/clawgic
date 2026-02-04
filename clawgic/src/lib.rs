@@ -5,6 +5,8 @@ pub mod operator_notation;
 
 pub mod prelude;
 
+mod utils;
+
 /// All the errors that can occur in making and managing an `ExpressionTree`. 
 #[derive(Debug, PartialEq, Eq)]
 pub enum ClawgicError{
