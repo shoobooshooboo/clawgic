@@ -1,5 +1,15 @@
 ROADMAP
 
+IMMEDIATE NEXT TASK:
+re-merge tests with clawgic to get proper test coverage stats.
+-extract contents of clawgic/clawgic/
+-delete clawgic/clawgic/
+-add clawgic/tests/
+-put test cases in clawgic/tests/
+-delete clawgic_tests
+-add test_case as a debug-only dependency
+-cargo llvm-cov
+
 current goals v0.8.0 (predicate logic update titled: "the big one"):
 - add predicate logic
     X replace variables with predicates
@@ -35,7 +45,9 @@ v0.9.0 (immutable trees update titled: "hands off that tree!"):
     - rework all of the '_with' functions to use immutable trees to save on space.
 
 whenever (unimportant and complicated):
-- .comm_eq() (tells whether two expressions are commutatively equivalent)
+- .comm_eq() (tells whether two expressions are commutatively equivalent) maybe impossible.
+- maybe make Constant/Variable type so we dont have to constantly check if the constant name is valid.
+ leave in string versions of functions, though. let the user pick their poison.
 
 - optimize
 - OPTIMIZE

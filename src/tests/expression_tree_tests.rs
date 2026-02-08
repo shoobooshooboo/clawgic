@@ -2,7 +2,7 @@
 use std::collections::HashMap;
 
 use test_case::test_case;
-use clawgic::prelude::*;
+use crate::prelude::*;
 
 #[test_case("A" ; "single variable")]
 #[test_case("A&B" ; "one connective")]

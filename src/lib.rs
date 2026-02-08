@@ -7,6 +7,9 @@ pub mod prelude;
 
 mod utils;
 
+#[cfg(test)]
+mod tests;
+
 /// All the errors that can occur in making and managing an `ExpressionTree`. 
 #[derive(Debug, PartialEq, Eq)]
 pub enum ClawgicError{

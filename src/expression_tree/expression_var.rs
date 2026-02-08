@@ -215,6 +215,7 @@ impl ShrAssign<&ExpressionVar> for ExpressionTree{
 /// 
 /// Can be indexed two different ways depending on construction.
 /// ```
+/// use clawgic::prelude::*;
 /// //relative indexing
 /// let a = ExpressionVars::new("A", 1..=3, true).unwrap();
 /// assert_eq!(a[1].name(), "A1");

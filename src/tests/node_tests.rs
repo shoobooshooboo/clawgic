@@ -2,7 +2,8 @@
 
 use std::collections::HashMap;
 
-use clawgic::expression_tree::node::{Node, negation::Negation, operator::Operator};
+use crate::prelude::*;
+use crate::expression_tree::node::{Node, negation::Negation};
 use test_case::test_case;
 
 #[test_case(true ; "true node")]

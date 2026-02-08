@@ -1,7 +1,7 @@
 #![cfg(test)]
 use test_case::test_case;
 
-use clawgic::prelude::*;
+use crate::prelude::*;
 
 #[test]
 fn op_construction(){
