@@ -1,15 +1,5 @@
 ROADMAP
 
-IMMEDIATE NEXT TASK:
-re-merge tests with clawgic to get proper test coverage stats.
--extract contents of clawgic/clawgic/
--delete clawgic/clawgic/
--add clawgic/tests/
--put test cases in clawgic/tests/
--delete clawgic_tests
--add test_case as a debug-only dependency
--cargo llvm-cov
-
 current goals v0.8.0 (predicate logic update titled: "the big one"):
 - add predicate logic
     X replace variables with predicates
