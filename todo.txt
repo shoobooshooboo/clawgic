@@ -26,13 +26,18 @@ later goals:
 v0.8.1 (speedup update, titled: "from tortoise to hare"):
 - random expression generator (do this first for performance benchmarking)
 - JIT compiler
-- upgrade documentation
-    - add example code to all functions
-    - add time and space complexities of all functions
 
 v0.9.0 (immutable trees update titled: "hands off that tree!"):
 - make immutable expression trees
     - rework all of the '_with' functions to use immutable trees to save on space.
+
+v1.0 (full release update: "let's be clawgical about this"):
+- upgrade documentation
+    - add example code to all functions
+    - add time and space complexities of all functions
+- get 100% test coverage
+- benchmarks
+- reasonable optimizations
 
 whenever (unimportant and complicated):
 - .comm_eq() (tells whether two expressions are commutatively equivalent) maybe impossible.

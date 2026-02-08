@@ -42,7 +42,7 @@ impl Predicate{
 
 /// A predicate logic atomic sentence.
 /// The combination of a predicate and a set of variables.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Sentence{
     ///The identifying name and arity of the predicate
     predicate: Predicate,

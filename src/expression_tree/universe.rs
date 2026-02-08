@@ -25,7 +25,7 @@ impl Universe{
         Self { variables: HashSet::new(), predicates: HashMap::new() }
     }
 
-    /// Attempts to insert the given variable into the Universe. 
+    /// Attempts to add the given variable into the Universe. 
     /// If the name is invalid, returns 
     pub fn insert_variable(&mut self, variable: &str) -> Result<bool, ClawgicError>{
         if !utils::is_valid_var_name(&variable){
@@ -35,29 +35,62 @@ impl Universe{
         Ok(self.variables.insert(variable.to_string()))
     }
 
-    pub fn insert_variables<'a, T: Iterator<Item = &'a String>>(&mut self, variables: T) -> Result<(), ClawgicError>{
+    /// Attemps to add several variables into the Universe.
+    pub fn insert_variables<It: Iterator<Item = String>>(&mut self, variables: It) -> Result<(), ClawgicError>{
         for var in variables{
-            if !utils::is_valid_var_name(var){
-                return Err(ClawgicError::InvalidVariableName(var.clone()));
+            if !utils::is_valid_var_name(&var){
+                return Err(ClawgicError::InvalidVariableName(var));
             }
-            self.variables.insert(var.clone());
+            self.variables.insert(var);
         }
 
         Ok(())
     }
 
-    pub fn insert_predicate(&mut self, predicate: &Predicate) -> bool{
-        if self.predicates.contains_key(predicate){
+    /// Adds a predicate to the Universe.
+    /// Returns false if the predicate was already in the Universe. 
+    pub fn insert_predicate(&mut self, predicate: Predicate) -> bool{
+        if self.predicates.contains_key(&predicate){
             return false;
         }
-        self.predicates.entry(predicate.clone()).or_default();
+        self.predicates.entry(predicate).or_default();
         true
     }
 
-    pub fn insert_predicates<'a, T: Iterator<Item = &'a Predicate>>(&mut self, predicates: T){
+    /// Adds several predicates to the universe.
+    pub fn insert_predicates<It: Iterator<Item = Predicate>>(&mut self, predicates: It){
         for pred in predicates{
             self.predicates.entry(pred.clone()).or_default();
         }
     }
 
+    /// Adds a sentence and it's truth value to the Universe.
+    /// If the sentence was already in the Universe, returns the previous truth value.
+    /// 
+    /// If the sentence's predicate is not in the Universe already, it is added.
+    pub fn insert_sentence(&mut self, sentence: Sentence, truth_value: bool) -> Option<bool>{
+        self.predicates.entry(sentence.predicate().clone()).or_default().insert(sentence, truth_value)
+    }
+
+    /// Adds several sentences and their truth values to the Universe.
+    pub fn insert_sentences<It: Iterator<Item = (Sentence, bool)>>(&mut self, sentences: It){
+        for s in sentences{
+            self.insert_sentence(s.0, s.1);
+        }
+    }
+
+    ///returns the set of variables.
+    pub fn variables(&self) -> &HashSet<String>{
+        &self.variables
+    }
+
+    ///returns an iterator of all the predicates.
+    pub fn predicates(&self) -> std::collections::hash_map::Keys<'_, Predicate, HashMap<Sentence, bool>>{
+        self.predicates.keys()
+    }
+
+    ///Gets all sentences and their truth values of the given predicate.
+    pub fn all_sentences(&self, predicate: Predicate) -> Option<&HashMap<Sentence, bool>>{
+        self.predicates.get(&predicate)
+    }
 }
