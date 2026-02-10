@@ -37,9 +37,9 @@ fn new_err(expression: &str, err: ClawgicError){
 fn set_variable(){
     let mut t = ExpressionTree::new("A&B->A").unwrap();
     assert!(t.evaluate().is_err());
-    t.set_variable("A", true);
+    t.set_tval("A", true);
     assert!(t.evaluate().is_err());
-    t.set_variable("B", true);
+    t.set_tval("B", true);
     assert!(t.evaluate().is_ok());
 }
 
@@ -50,17 +50,17 @@ fn set_variable(){
 #[test_case("A<->B", true, false, true, false ; "biconditional")]
 fn evaluate(expression: &str, ex1: bool, ex2: bool, ex3: bool, ex4: bool){
     let mut t = ExpressionTree::new(expression).unwrap();
-    t.set_variable("A", true);
-    t.set_variable("B", true);
+    t.set_tval("A", true);
+    t.set_tval("B", true);
     assert_eq!(t.evaluate().unwrap(), ex1, "failed true true");
 
-    t.set_variable("B", false);
+    t.set_tval("B", false);
     assert_eq!(t.evaluate().unwrap(), ex2, "failed true false");
 
-    t.set_variable("A", false);
+    t.set_tval("A", false);
     assert_eq!(t.evaluate().unwrap(), ex3, "failed false false");
 
-    t.set_variable("B", true);
+    t.set_tval("B", true);
     assert_eq!(t.evaluate().unwrap(), ex4, "failed false true");
 }
 
@@ -329,7 +329,7 @@ fn replace_variables(){
 #[test]
 fn evaluate_after_deny(){
     let mut tree = ExpressionTree::new("A").unwrap();
-    tree.set_variable("A", true);
+    tree.set_tval("A", true);
     assert!(tree.evaluate().unwrap());
     tree.deny();
     assert!(!tree.evaluate().unwrap());

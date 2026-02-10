@@ -5,10 +5,10 @@ current goals v0.8.0 (predicate logic update titled: "the big one"):
     X replace variables with predicates
         X make predicates
         X make sentences
-    - create Context/Universe struct to hold truth values and constants.
-##TEST##
     - replace Node::Variable with Node::Sentence
     - change shunting-yard to accomodate predicates
+    X create Context/Universe struct to hold truth values and constants.
+        - actually use Universe in ExpressionTree impl
 ##TEST##
     - replace ExpressionVar with ExpressionPredicate (Do we even need them anymore now that we have predicates? maybe just change predicates to work )
 ##TEST##
@@ -16,6 +16,8 @@ current goals v0.8.0 (predicate logic update titled: "the big one"):
 ##TEST##
     - add ExpressionTree::universal() and ExpressionTree::existential()
     - add ExpressionTree/Node::quant_exch()
+##TEST##
+    - figure out how to reimplement satisfiability stuff
 ##TEST##
     - update README.md
 

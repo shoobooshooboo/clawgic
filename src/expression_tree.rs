@@ -6,18 +6,21 @@ mod shell;
 use shell::Shell;
 use node::Node;
 use node::operator::Operator;
+use node::sentence::Predicate;
 use std::cell::Cell;
 use std::collections::HashMap;
 
 use crate::expression_tree::node::negation::Negation;
+use crate::expression_tree::universe::Universe;
 use crate::operator_notation::OperatorNotation;
 use crate::ClawgicError;
+use crate::prelude::Sentence;
 
 /// Expression tree for logical expressions in SL.
 #[derive(Debug, Clone)]
 pub struct ExpressionTree{
     /// All the unique variables in the tree and their current value.
-    vars: HashMap<String, Option<bool>>,
+    uni: Universe,
     /// Root node of the expression Tree.
     root: Node,
     /// Cached previous result of `evaluate()`
@@ -28,31 +31,31 @@ impl ExpressionTree{
     ///returns a tree that is just a true node
     #[allow(non_snake_case)]
     pub fn TRUE() -> Self{
-        Self { vars: HashMap::new(), root: Node::Constant(Negation::default(), true), value: Cell::new(Some(true)) }
+        Self { uni: Universe::new(), root: Node::Constant(Negation::default(), true), value: Cell::new(Some(true)) }
     }
 
     /// Returns a tree that is just a false node
     #[allow(non_snake_case)]
     pub fn FALSE() -> Self{
-        Self { vars: HashMap::new(), root: Node::Constant(Negation::default(), false), value: Cell::new(Some(false)) }
+        Self { uni: Universe::new(), root: Node::Constant(Negation::default(), false), value: Cell::new(Some(false)) }
         
     }
 
     // Constructs a tree with a single constant node of the given value.
     pub fn constant(b: bool) -> Self{
-        Self { vars: HashMap::new(), root: Node::Constant(Negation::default(), b), value: Cell::new(Some(b)) }
+        Self { uni: Universe::new(), root: Node::Constant(Negation::default(), b), value: Cell::new(Some(b)) }
     }
 
     /// Constructs a new expression tree given a string representation of an infix logical expression.
     pub fn new(expression: &str) -> Result<Self, ClawgicError>{
         let shells = &mut Self::shunting_yard(expression)?;
         let root = Self::construct_tree(shells)?;
-        let vars = Self::create_vars(&root, HashMap::new());
+        let vars = Self::create_uni(&root, HashMap::new());
         if !shells.is_empty(){
             return Err(ClawgicError::NotEnoughOperators);
         }
         Ok(Self{
-            vars,
+            uni: vars,
             root,
             value: Cell::new(None),
         })
@@ -63,12 +66,12 @@ impl ExpressionTree{
     pub fn new_with_notation(expression: &str, notation: &OperatorNotation) -> Result<Self, ClawgicError>{
         let shells = &mut Self::shunting_yard_with_notation(expression, notation)?;
         let root = Self::construct_tree(shells)?;
-        let vars = Self::create_vars(&root, HashMap::new());
+        let vars = Self::create_uni(&root, HashMap::new());
         if !shells.is_empty(){
             return Err(ClawgicError::NotEnoughOperators);
         }
         Ok(Self{
-            vars,
+            uni: vars,
             root,
             value: Cell::new(None),
         })
@@ -352,7 +355,7 @@ impl ExpressionTree{
                         let left = Self::construct_tree(shells)?;
                         Node::Operator { neg: denied, op, left: Box::new(left), right: Box::new(right) }
                     },
-                    Shell::Variable(denied, name) => Node::Variable { neg: denied, name},
+                    Shell::Sentence(denied, predicate, vars) => Node::Sentence { neg: denied, sen: predicate.inst(&vars)?},
                     Shell::Constant(neg, value) => Node::Constant(neg, value),
                     Shell::Parentheses => return Err(ClawgicError::InvalidParentheses),
                     Shell::Tilde(_) => return Err(ClawgicError::InvalidExpression),
@@ -365,16 +368,16 @@ impl ExpressionTree{
     }
 
     //OPTIMIZATION: create vars at the same time as construct_tree to avoid excessive work.
-    /// Takes a `Node` and the vars map and does a depth-first-search for every variable, inserting them into the map as they are found.
-    fn create_vars(node: & Node, mut vars: HashMap<String, Option<bool>>) -> HashMap<String, Option<bool>>{
+    /// Takes a `Node` and the `Universe` and does a depth-first-search for every variable, inserting them into the map as they are found.
+    fn create_uni(node: & Node, mut vars: Universe) -> Universe{
         let vars = match node{
             Node::Operator { neg: _, op: _, left, right } =>{
-                let vars = Self::create_vars(left, vars);
-                Self::create_vars(right, vars)
+                let vars = Self::create_uni(left, vars);
+                Self::create_uni(right, vars)
             },
             Node::Constant(..) => vars,
-            Node::Variable { neg: _, name} => {
-                vars.insert(name.clone(), None);
+            Node::Sentence { neg: _, sen} => {
+                vars.insert_predicate(sen.predicate().clone());
                 vars
             },
         };
@@ -382,10 +385,10 @@ impl ExpressionTree{
         vars
     }
 
-    /// Searches for every variable with the given name and updates it's value.
-    pub fn set_variable(&mut self, name: &str, value: bool){
-        if self.vars.get(name).is_some_and(|v| v.is_none_or(|b| value != b)){
-            self.vars.insert(name.to_string(), Some(value));
+    /// Sets the truth value of the given sentence.
+    pub fn set_tval(&mut self, sentence: &Sentence, value: bool){
+        if self.uni.get(name).is_some_and(|v| v.is_none_or(|b| value != b)){
+            self.uni.insert(name.to_string(), Some(value));
             self.value.replace(None);
         }
     }
@@ -393,7 +396,7 @@ impl ExpressionTree{
     /// Updates the values of all the variables in `vars`.
     pub fn set_variables(&mut self, vars: &HashMap<String, bool>){
         for (name, b) in vars.iter(){
-            match self.vars.get_mut(name){
+            match self.uni.get_mut(name){
                 Some(v) => v.replace(*b),
                 None => continue,
             };
@@ -403,11 +406,11 @@ impl ExpressionTree{
 
     /// Replaces all instances of var in the tree with new_expression. Adds all variables from new_expression to self as they are.
     pub fn replace_variable(&mut self, var: &str, new_expression: &ExpressionTree) -> &mut Self{
-        if self.vars.contains_key(var){
-            self.vars.remove(var);
-            for (name, val) in new_expression.vars.iter(){
-                if !self.vars.contains_key(name){
-                    self.vars.insert(name.clone(), val.clone());
+        if self.uni.contains_key(var){
+            self.uni.remove(var);
+            for (name, val) in new_expression.uni.iter(){
+                if !self.uni.contains_key(name){
+                    self.uni.insert(name.clone(), val.clone());
                 }
             }
             Self::replace_variable_rec(&mut self.root, var, new_expression);
@@ -420,7 +423,7 @@ impl ExpressionTree{
     /// Recursive helper function for `ExpressionTree::replace_variable()`
     fn replace_variable_rec(cur_node: &mut Node, var: &str, new_expression: &ExpressionTree){
         if cur_node.is_variable(){
-            let Node::Variable { neg: denied, name} = cur_node.clone()
+            let Node::Sentence { neg: denied, name} = cur_node.clone()
                 else{panic!("this should never happen (in replace_variable_rec())")};
             if var == name{
                 *cur_node = new_expression.root.clone();
@@ -442,7 +445,7 @@ impl ExpressionTree{
         let mut something_in_vars = false;
         let mut was_in_vars = Vec::with_capacity(vars.len());
         for (var, _) in vars.iter(){
-            if self.vars.remove(var).is_some(){
+            if self.uni.remove(var).is_some(){
                 was_in_vars.push(true);
                 something_in_vars = true;
             }else{
@@ -451,9 +454,9 @@ impl ExpressionTree{
         }
         for (i, (_, new_expression)) in vars.iter().enumerate(){
             if was_in_vars[i]{
-                for (name, val) in new_expression.vars.iter(){
-                    if !self.vars.contains_key(name){
-                        self.vars.insert(name.clone(), val.clone());
+                for (name, val) in new_expression.uni.iter(){
+                    if !self.uni.contains_key(name){
+                        self.uni.insert(name.clone(), val.clone());
                     }
                 }
             }
@@ -469,7 +472,7 @@ impl ExpressionTree{
     /// Recursive helper function for `ExpressionTree::replace_variable()`
     fn replace_variables_rec(cur_node: &mut Node, vars: &HashMap<String, &ExpressionTree>){
         if cur_node.is_variable(){
-            let Node::Variable { neg: denied, name} = cur_node.clone()
+            let Node::Sentence { neg: denied, name} = cur_node.clone()
                 else{panic!("this should never happen (in replace_variable_rec())")};
             match vars.get(&name){
                 Some(new_expression) => {
@@ -491,14 +494,14 @@ impl ExpressionTree{
     ///replaces all instances of old expression in the tree with new expression.
     pub fn replace_expression(&mut self, old: &ExpressionTree, new: &ExpressionTree){
         Self::replace_expression_rec(&mut self.root, old, new);
-        let mut new_vars= Self::create_vars(&self.root, HashMap::new());
+        let mut new_vars= Self::create_uni(&self.root, HashMap::new());
 
-        for (name, val) in self.vars.iter(){
+        for (name, val) in self.uni.iter(){
            if let Some(var) = new_vars.get_mut(name){
                 *var = *val; 
             }
         }
-        for (name, val) in new.vars.iter(){
+        for (name, val) in new.uni.iter(){
             if let Some(var) = new_vars.get_mut(name){
                 if var.is_none(){
                     *var = *val;
@@ -513,9 +516,9 @@ impl ExpressionTree{
             return;
         }
         if cur_node.is_variable() && old.root.is_variable(){
-            let Node::Variable { neg: cur_denied, name: cur_name } = cur_node 
+            let Node::Sentence { neg: cur_denied, name: cur_name } = cur_node 
                 else {panic!("this shouldn't be possible (replace_expression_rec)")};
-            let Node::Variable { neg: old_denied, name: old_name } = &old.root
+            let Node::Sentence { neg: old_denied, name: old_name } = &old.root
                 else {panic!("this shouldn't be possible (replace_expression_rec)")};
             if old_name == cur_name{
                 let deny = *cur_denied != *old_denied;
@@ -548,7 +551,7 @@ impl ExpressionTree{
         match self.value.get(){
             Some(v) => Ok(v),
             None => {
-                let result = self.root.evaluate(&self.vars);
+                let result = self.root.evaluate(&self.uni);
                 match result{
                     Ok(b) => {
                         self.value.replace(Some(b));
@@ -561,8 +564,8 @@ impl ExpressionTree{
     }
 
     /// Attempts to evaluate the tree with the given set of variables.
-    pub fn evaluate_with_vars(&self, vars: &HashMap<String, bool>) -> Result<bool, ClawgicError>{
-        self.root.evaluate_with_vars(vars)
+    pub fn evaluate_with_uni(&self, uni: &Universe) -> Result<bool, ClawgicError>{
+        self.root.evaluate(uni)
     }
 
     /// Gets the prefix representation of the tree.
@@ -618,8 +621,8 @@ impl ExpressionTree{
     }
 
     /// Gets the variables map of the tree.
-    pub fn vars(&self) -> &HashMap<String, Option<bool>>{
-        &self.vars
+    pub fn universe(&self) -> &Universe{
+        &self.uni
     }
 
     /// Converts all operators in the tree into conjunctions and disjunctions with no leading denials.
@@ -671,12 +674,12 @@ impl ExpressionTree{
 
     ///consumes two trees and returns a tree in the form of self & second.
     pub fn and(mut self, second: Self) -> Self{
-        for (name, val) in second.vars{
-            self.vars.entry(name).or_insert(val);
+        for (name, val) in second.uni{
+            self.uni.entry(name).or_insert(val);
         }
 
         Self { 
-            vars: self.vars, 
+            uni: self.uni, 
             root: Node::Operator{neg: Negation::default(), op: node::operator::Operator::AND, left: Box::new(self.root), right: Box::new(second.root)},
             value: Cell::new(None),
         }
@@ -684,12 +687,12 @@ impl ExpressionTree{
 
     ///consumes two trees and returns a tree in the form of self v (wedge) second.
     pub fn or(mut self, second: Self) -> Self{
-        for (name, val) in second.vars{
-            self.vars.entry(name).or_insert(val);
+        for (name, val) in second.uni{
+            self.uni.entry(name).or_insert(val);
         }
 
         Self { 
-            vars: self.vars, 
+            uni: self.uni, 
             root: Node::Operator{neg: Negation::default(), op: node::operator::Operator::OR, left: Box::new(self.root), right: Box::new(second.root)},
             value: Cell::new(None),
         }
@@ -697,12 +700,12 @@ impl ExpressionTree{
 
     ///consumes two trees and returns a tree in the form of self->consequent.
     pub fn con(mut self, consequent: Self) -> Self{
-        for (name, val) in consequent.vars{
-            self.vars.entry(name).or_insert(val);
+        for (name, val) in consequent.uni{
+            self.uni.entry(name).or_insert(val);
         }
 
         Self { 
-            vars: self.vars, 
+            uni: self.uni, 
             root: Node::Operator{neg: Negation::default(), op: node::operator::Operator::CON, left: Box::new(self.root), right: Box::new(consequent.root)},
             value: Cell::new(None),
         }
@@ -710,12 +713,12 @@ impl ExpressionTree{
 
     ///consumes two trees and returns a tree in the form of self->second.
     pub fn bicon(mut self: Self, second: Self) -> Self{
-        for (name, val) in second.vars{
-            self.vars.entry(name).or_insert(val);
+        for (name, val) in second.uni{
+            self.uni.entry(name).or_insert(val);
         }
 
         Self { 
-            vars: self.vars, 
+            uni: self.uni, 
             root: Node::Operator{neg: Negation::default(), op: node::operator::Operator::BICON, left: Box::new(self.root), right: Box::new(second.root)},
             value: Cell::new(None),
         }
@@ -744,11 +747,7 @@ impl ExpressionTree{
 
     ///checks if the two expressions are syntactically the same (one can be transformed into the other with primitive logic rules). Very expensive function.
     pub fn syn_eq(&self, other: &Self) -> bool{
-        //check if they use only the same variables.
-        let mut same_vars = true;
-        self.vars().iter().for_each(|(name, _)| if !other.vars.contains_key(name) {same_vars = false});
-        other.vars().iter().for_each(|(name, _)| if !self.vars.contains_key(name) {same_vars = false});
-        if !same_vars{
+        if self.uni == other.uni{
             return false;
         }
         //check for logical equivalence
@@ -757,24 +756,25 @@ impl ExpressionTree{
 
     ///checks if the expression is satisfiable. Very expensive function.
     pub fn is_satisfiable(&self) -> bool{
-        let mut vars: HashMap<String, bool> = self.vars.iter().map(|(n, _)| (n.to_owned(), false)).collect();
+        todo!()
+        // let mut vars: HashMap<String, bool> = self.uni.iter().map(|(n, _)| (n.to_owned(), false)).collect();
 
-        'outer: loop{
-            if self.evaluate_with_vars(&vars).unwrap(){
-                return true;
-            }
+        // 'outer: loop{
+        //     if self.evaluate_with_vars(&vars).unwrap(){
+        //         return true;
+        //     }
 
-            for (_, b) in vars.iter_mut(){
-                *b = !*b;
-                if *b{
-                    continue 'outer;
-                }
-            }
+        //     for (_, b) in vars.iter_mut(){
+        //         *b = !*b;
+        //         if *b{
+        //             continue 'outer;
+        //         }
+        //     }
 
-            break;
-        }
+        //     break;
+        // }
 
-        false
+        // false
     }
 
     ///checks if the expression is satisfiable given the auxiliary expression. Very expensive function.
@@ -784,24 +784,25 @@ impl ExpressionTree{
 
     ///returns a set of variables that satisfies the expression if one exists. Very expensive function.
     pub fn satisfy_one(&self) -> Option<HashMap<String, bool>>{
-        let mut vars: HashMap<String, bool> = self.vars.iter().map(|(n, _)| (n.to_owned(), false)).collect();
+        todo!();
+        // let mut vars: HashMap<String, bool> = self.uni.iter().map(|(n, _)| (n.to_owned(), false)).collect();
 
-        'outer: loop{
-            if self.evaluate_with_vars(&vars).unwrap(){
-                return Some(vars);
-            }
+        // 'outer: loop{
+        //     if self.evaluate_with_vars(&vars).unwrap(){
+        //         return Some(vars);
+        //     }
 
-            for (_, b) in vars.iter_mut(){
-                *b = !*b;
-                if *b{
-                    continue 'outer;
-                }
-            }
+        //     for (_, b) in vars.iter_mut(){
+        //         *b = !*b;
+        //         if *b{
+        //             continue 'outer;
+        //         }
+        //     }
 
-            break;
-        }
+        //     break;
+        // }
 
-        None
+        // None
     }
 
     ///returns a set of variables that satisfies the expression and the auxiliary expression if one exists. Very expensive function.
@@ -811,25 +812,26 @@ impl ExpressionTree{
 
     ///returns a vector of all sets of variables that satisfy the expression. Extremely expensive function.
     pub fn satisfy_all(&self) -> Vec<HashMap<String, bool>>{
-        let mut vars: HashMap<String, bool> = self.vars.iter().map(|(n, _)| (n.to_owned(), false)).collect();
-        let mut maps = Vec::new();
+        todo!()
+        // let mut vars: HashMap<String, bool> = self.uni.iter().map(|(n, _)| (n.to_owned(), false)).collect();
+        // let mut maps = Vec::new();
 
-        'outer: loop{
-            if self.evaluate_with_vars(&vars).unwrap(){
-                maps.push(vars.clone());
-            }
+        // 'outer: loop{
+        //     if self.evaluate_with_vars(&vars).unwrap(){
+        //         maps.push(vars.clone());
+        //     }
 
-            for (_, b) in vars.iter_mut(){
-                *b = !*b;
-                if *b{
-                    continue 'outer;
-                }
-            }
+        //     for (_, b) in vars.iter_mut(){
+        //         *b = !*b;
+        //         if *b{
+        //             continue 'outer;
+        //         }
+        //     }
 
-            break;
-        }
+        //     break;
+        // }
 
-        maps
+        // maps
     }
 
     ///returns a vector of all sets of variables that satisfy the expression and the auxiliary expression. Extremely expensive function.
@@ -839,32 +841,33 @@ impl ExpressionTree{
 
     ///returns the total number of ways the expression can be satisfied. very expensive function.
     pub fn satisfy_count(&self) -> Vec<u128>{
-        let mut vars: HashMap<String, bool> = self.vars.iter().map(|(n, _)| (n.to_owned(), false)).collect();
-        let len = 1 + vars.len() / 128;
-        let mut count = vec![0 ; len];
+        todo!();
+        // let mut vars: HashMap<String, bool> = self.uni.iter().map(|(n, _)| (n.to_owned(), false)).collect();
+        // let len = 1 + vars.len() / 128;
+        // let mut count = vec![0 ; len];
 
-        'outer: loop{
-            if self.evaluate_with_vars(&vars).unwrap(){
-                for c in count.iter_mut(){
-                    if *c != std::u128::MAX{
-                        *c += 1;
-                        break;
-                    }
-                    *c = 0;
-                }
-            }
+        // 'outer: loop{
+        //     if self.evaluate_with_vars(&vars).unwrap(){
+        //         for c in count.iter_mut(){
+        //             if *c != std::u128::MAX{
+        //                 *c += 1;
+        //                 break;
+        //             }
+        //             *c = 0;
+        //         }
+        //     }
 
-            for (_, b) in vars.iter_mut(){
-                *b = !*b;
-                if *b{
-                    continue 'outer;
-                }
-            }
+        //     for (_, b) in vars.iter_mut(){
+        //         *b = !*b;
+        //         if *b{
+        //             continue 'outer;
+        //         }
+        //     }
 
-            break;
-        }
+        //     break;
+        // }
 
-        count
+        // count
     }
 
     ///returns the total number if ways the expression can be satisfied with the auxiliary expression. very expensive function.
@@ -874,24 +877,25 @@ impl ExpressionTree{
 
     ///returns whether the expression is a tautology (always true). Very expensive function.
     pub fn is_tautology(&self) -> bool{
-        let mut vars: HashMap<String, bool> = self.vars.iter().map(|(n, _)| (n.to_owned(), false)).collect();
+        todo!();
+        // let mut vars: HashMap<String, bool> = self.uni.iter().map(|(n, _)| (n.to_owned(), false)).collect();
 
-        'outer: loop{
-            if !self.evaluate_with_vars(&vars).unwrap(){
-                return false;
-            }
+        // 'outer: loop{
+        //     if !self.evaluate_with_vars(&vars).unwrap(){
+        //         return false;
+        //     }
 
-            for (_, b) in vars.iter_mut(){
-                *b = !*b;
-                if *b{
-                    continue 'outer;
-                }
-            }
+        //     for (_, b) in vars.iter_mut(){
+        //         *b = !*b;
+        //         if *b{
+        //             continue 'outer;
+        //         }
+        //     }
 
-            break;
-        }
+        //     break;
+        // }
 
-        true
+        // true
     }
 
     ///returns whether the expression is tautological with the auxiliary expression. Very expensive function.
@@ -901,24 +905,25 @@ impl ExpressionTree{
 
     ///returns whether the expression is an inconsistency (always false). Very expensive function.
     pub fn is_inconsistency(&self) -> bool{
-        let mut vars: HashMap<String, bool> = self.vars.iter().map(|(n, _)| (n.to_owned(), false)).collect();
+        todo!();
+        // let mut vars: HashMap<String, bool> = self.uni.iter().map(|(n, _)| (n.to_owned(), false)).collect();
 
-        'outer: loop{
-            if self.evaluate_with_vars(&vars).unwrap(){
-                return false;
-            }
+        // 'outer: loop{
+        //     if self.evaluate_with_vars(&vars).unwrap(){
+        //         return false;
+        //     }
 
-            for (_, b) in vars.iter_mut(){
-                *b = !*b;
-                if *b{
-                    continue 'outer;
-                }
-            }
+        //     for (_, b) in vars.iter_mut(){
+        //         *b = !*b;
+        //         if *b{
+        //             continue 'outer;
+        //         }
+        //     }
 
-            break;
-        }
+        //     break;
+        // }
 
-        true
+        // true
     }
 
     ///returns whether the expression is inconsistent with the auxiliary expression. Very expensive function.
@@ -928,32 +933,33 @@ impl ExpressionTree{
 
     ///returns whether the expression is a contingency (sometimes true, sometimes false). Very expensive function.
     pub fn is_contingency(&self) -> bool{
-        let mut vars: HashMap<String, bool> = self.vars.iter().map(|(n, _)| (n.to_owned(), false)).collect();
-        let mut can_be_false = false;
-        let mut can_be_true = false;
+        todo!();
+        // let mut vars: HashMap<String, bool> = self.uni.iter().map(|(n, _)| (n.to_owned(), false)).collect();
+        // let mut can_be_false = false;
+        // let mut can_be_true = false;
 
-        'outer: loop{
-            if self.evaluate_with_vars(&vars).unwrap(){
-                can_be_true = true;
-            }else{
-                can_be_false = true;
-            }
+        // 'outer: loop{
+        //     if self.evaluate_with_vars(&vars).unwrap(){
+        //         can_be_true = true;
+        //     }else{
+        //         can_be_false = true;
+        //     }
 
-            if can_be_false && can_be_true{
-                return true;
-            }
+        //     if can_be_false && can_be_true{
+        //         return true;
+        //     }
 
-            for (_, b) in vars.iter_mut(){
-                *b = !*b;
-                if *b{
-                    continue 'outer;
-                }
-            }
+        //     for (_, b) in vars.iter_mut(){
+        //         *b = !*b;
+        //         if *b{
+        //             continue 'outer;
+        //         }
+        //     }
 
-            break;
-        }
+        //     break;
+        // }
 
-        false
+        // false
     }
 
     ///returns whether the expression is contingent with the auxiliary expression. Very expensive function.
@@ -1133,7 +1139,7 @@ impl ExpressionTree{
                     Some(op)
                 }
             },
-            Node::Variable { neg, .. } => {
+            Node::Sentence { neg, .. } => {
                 if neg.count() > 0{
                     Some(Operator::NOT)
                 }else{
@@ -1169,7 +1175,7 @@ impl Default for ExpressionTree{
     /// Default value is just a constant false node.
     fn default() -> Self {
         Self { 
-            vars: HashMap::new(), 
+            uni: Universe::new(), 
             root: Node::Constant(Negation::default(), false),
             value: Cell::new(None),
         }
@@ -1179,7 +1185,7 @@ impl Default for ExpressionTree{
 impl From<Node> for ExpressionTree{
     fn from(n: Node) -> Self{
         Self { 
-            vars: Self::create_vars(&n, HashMap::new()), 
+            uni: Self::create_uni(&n, Universe::new()), 
             root: n,
             value: Cell::new(None),
         }

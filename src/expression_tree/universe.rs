@@ -8,6 +8,7 @@ use crate::{ClawgicError, prelude::{Predicate, Sentence}, utils};
 /// * existing variables (i.e. "a", "b12", etc.), 
 /// * existing predicates (i.e. ("P", 0), ("Q", 2), etc), 
 /// * known values (i.e. "P", "~Q(a,b12)") 
+#[derive(Debug, Clone)]
 pub struct Universe{
     //Things that exist
     /// All variables in the universe.
@@ -90,7 +91,58 @@ impl Universe{
     }
 
     ///Gets all sentences and their truth values of the given predicate.
-    pub fn all_sentences(&self, predicate: Predicate) -> Option<&HashMap<Sentence, bool>>{
-        self.predicates.get(&predicate)
+    pub fn all_sentences(&self, predicate: &Predicate) -> Option<&HashMap<Sentence, bool>>{
+        self.predicates.get(predicate)
+    }
+
+    ///Gets the truth value of the given sentence.
+    pub fn get_tval(&self, sentence: &Sentence) -> Option<bool>{
+        self.predicates.get(sentence.predicate()).and_then(|map| map.get(sentence)).copied()
+    }
+
+    ///Gets a mutable reference to the truth value of the given sentence.
+    pub fn get_tval_mut(&mut self, sentence: &Sentence) -> Option<&mut bool>{
+        self.predicates.get_mut(sentence.predicate()).and_then(|map| map.get_mut(sentence))
+    }
+
+    ///Returns true if the two universes have the same constants, predicates, and concrete sentences
+    pub fn syn_eq(&self, other: &Self) -> bool{
+
     }
 }
+
+impl PartialEq for Universe{
+    fn eq(&self, other: &Self) -> bool {
+        let mut same_vars = true;
+        self.variables.iter().for_each(|name| if !other.variables.contains(name) {same_vars = false});
+        if !same_vars{return false;}
+        other.variables.iter().for_each(|name| if !self.variables.contains(name) {same_vars = false});
+        if !same_vars{return false;}
+
+        let mut same_sentences = true;
+        self.predicates.iter().for_each(|(pred, map)| {
+            if !same_sentences{return;}
+            let other_map = other.all_sentences(pred);
+            if other_map.is_none(){same_sentences = false; return;}
+            let other_map = other_map.unwrap();
+            map.iter().for_each(|(sentence, tval)| if other_map.get(sentence).is_none_or(|other_tval| *tval != *other_tval){same_sentences = false;});
+        });
+        if !same_sentences{return false;}
+        other.predicates.iter().for_each(|(pred, map)| {
+            if !same_sentences{return;}
+            let self_map = self.all_sentences(pred);
+            if self_map.is_none(){same_sentences = false; return;}
+            let self_map = self_map.unwrap();
+            map.iter().for_each(|(sentence, tval)| if self_map.get(sentence).is_none_or(|self_tval| *tval != *self_tval){same_sentences = false;});
+        });
+        if !same_sentences{return false;}
+
+        true
+    }
+
+    fn ne(&self, other: &Self) -> bool {
+        !(self == other)
+    }
+}
+
+impl Eq for Universe{}

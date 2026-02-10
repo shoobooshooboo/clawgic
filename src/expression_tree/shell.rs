@@ -1,4 +1,4 @@
-use crate::expression_tree::node::negation::Negation;
+use crate::{expression_tree::node::negation::Negation, prelude::Predicate};
 
 use super::node::operator::Operator;
 
@@ -9,7 +9,7 @@ pub enum Shell{
     /// Binary logical operator.
     Operator(Negation, Operator),
     /// Boolean Variable.
-    Variable(Negation, String),
+    Sentence(Negation, Predicate, Vec<String>),
     /// Boolean constant. True or False.
     Constant(Negation, bool),
     /// Open Parentheses.
@@ -28,9 +28,9 @@ impl Shell{
     }
 
     /// Whether the `Shell` is an `Variable`.
-    pub fn is_variable(&self) -> bool{
+    pub fn is_sentence(&self) -> bool{
         match self{ 
-            Self::Variable(..) => true,
+            Self::Sentence(..) => true,
             _ => false,
         }
     }

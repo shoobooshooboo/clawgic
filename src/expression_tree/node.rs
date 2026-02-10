@@ -2,10 +2,10 @@ pub mod operator;
 pub mod negation;
 pub mod sentence;
 
-use std::{collections::HashMap, mem::swap};
+use std::{mem::swap};
 
 use operator::Operator;
-use crate::{expression_tree::{ClawgicError, node::negation::Negation}, operator_notation::OperatorNotation};
+use crate::{expression_tree::{ClawgicError, node::negation::Negation, universe::Universe}, operator_notation::OperatorNotation, prelude::Sentence};
 
 /// Nodes for regular logical expression tree.
 /// 
@@ -26,12 +26,12 @@ pub enum Node{
         /// right operand.
         right: Box<Node>,
     },
-    /// Variable node.
-    Variable{
+    /// Sentence node.
+    Sentence{
         /// Whether there is an odd number of tildes preceding the variable.
         neg: Negation,
-        /// Identifier of the variable. Ex: "A", "G", "B3".
-        name: String,
+        /// The actual sentence
+        sen: Sentence,
     },
     /// Constant node. True or False.
     Constant(Negation, bool),
@@ -47,9 +47,9 @@ impl Node{
     }
 
     /// Whether it is a variable node.
-    pub fn is_variable(&self) -> bool{
+    pub fn is_sentence(&self) -> bool{
         match self{
-            Self::Variable{..} => true,
+            Self::Sentence{..} => true,
             _ => false,
         }
     }
@@ -71,25 +71,22 @@ impl Node{
     /// 
     /// An operator node will attempt to perform its operation on it's left and right operands. 
     /// Will return an ExpressionTreeError if the evaluation of the left or right results in an `Err` value. 
-    pub fn evaluate(&self, vars: &HashMap<String, Option<bool>>) -> Result<bool, ClawgicError>{
+    pub fn evaluate(&self, uni: &Universe) -> Result<bool, ClawgicError>{
         match self{
             Self::Operator{op, neg: denied, left, right} => {
-                let left_result = left.evaluate(vars)?;
+                let left_result = left.evaluate(uni)?;
                 let result = match op.short_circuit(left_result){
                     Some(b) => b,
-                    None => op.execute(left_result, right.evaluate(vars)?),
+                    None => op.execute(left_result, right.evaluate(uni)?),
                 };
                 Ok(result != denied.is_denied())
             }
-            Self::Variable { neg: denied, name} =>{
-                let result = match vars.get(name){
+            Self::Sentence { neg: denied, sen} =>{
+                let result = match uni.get_tval(sen){
                     Some(b) => {
-                        if b.is_none(){
-                            return Err(ClawgicError::UninitializedSentence(name.clone()))
-                        }
-                        b.unwrap()
+                        b
                     },
-                    None => return Err(ClawgicError::UninitializedSentence(name.clone())),
+                    None => return Err(ClawgicError::UninitializedSentence(sen.name().to_string())),
                 };
                 Ok(denied.is_denied() != result)
             }
@@ -97,35 +94,35 @@ impl Node{
         }
     }
 
-    /// evaluates the tree with a specific set of concrete variables.
+    /// evaluates the tree with a specific `Universe`.
     /// 
     /// If some variable is not present in the map, returns `ExpressionTreeError::UninitualizedVariable`
-    pub fn evaluate_with_vars(&self, vars: &HashMap<String, bool>) -> Result<bool, ClawgicError>{
-        match self{
-            Self::Operator{op, neg: denied, left, right} => {
-                let left_result = left.evaluate_with_vars(vars)?;
-                let result = match op.short_circuit(left_result){
-                    Some(b) => b,
-                    None => op.execute(left_result, right.evaluate_with_vars(vars)?),
-                };
-                Ok(result != denied.is_denied())
-            }
-            Self::Variable { neg: denied, name} =>{
-                let result = match vars.get(name){
-                    Some(b) => b.clone(),
-                    None => return Err(ClawgicError::UninitializedSentence(name.clone())),
-                };
-                Ok (result != denied.is_denied())
-            }
-            Self::Constant(denied, value) => Ok(denied.is_denied() != *value),
-        }
-    }
+    // pub fn evaluate_with(&self, vars: &HashMap<String, bool>) -> Result<bool, ClawgicError>{
+    //     match self{
+    //         Self::Operator{op, neg: denied, left, right} => {
+    //             let left_result = left.evaluate_with(vars)?;
+    //             let result = match op.short_circuit(left_result){
+    //                 Some(b) => b,
+    //                 None => op.execute(left_result, right.evaluate_with(vars)?),
+    //             };
+    //             Ok(result != denied.is_denied())
+    //         }
+    //         Self::Variable { neg: denied, name} =>{
+    //             let result = match vars.get(name){
+    //                 Some(b) => b.clone(),
+    //                 None => return Err(ClawgicError::UninitializedSentence(name.clone())),
+    //             };
+    //             Ok (result != denied.is_denied())
+    //         }
+    //         Self::Constant(denied, value) => Ok(denied.is_denied() != *value),
+    //     }
+    // }
 
     /// If the node has at least one tilde, remove one. otherwise, add one. returns a mutable reference.
     pub fn deny(&mut self) -> &mut Self{
         match self{
             Node::Constant(denied, ..) => denied.deny(),
-            Node::Variable { neg: denied, ..} => denied.deny(),
+            Node::Sentence { neg: denied, ..} => denied.deny(),
             Node::Operator { neg: denied, ..} => denied.deny(),
         };
         self
@@ -135,7 +132,7 @@ impl Node{
     pub fn double_deny(&mut self) -> &mut Self{
         match self{
             Node::Constant(denied, ..) => denied.double_deny(),
-            Node::Variable { neg: denied, ..} => denied.double_deny(),
+            Node::Sentence { neg: denied, ..} => denied.double_deny(),
             Node::Operator { neg: denied, ..} => denied.double_deny(),
         };
         self
@@ -145,7 +142,7 @@ impl Node{
     pub fn negate(&mut self) -> &mut Self{
         match self{
             Node::Constant(denied, ..) => denied.negate(),
-            Node::Variable { neg: denied, ..} => denied.negate(),
+            Node::Sentence { neg: denied, ..} => denied.negate(),
             Node::Operator { neg: denied, ..} => denied.negate(),
         };
         self
@@ -155,7 +152,7 @@ impl Node{
     pub fn double_negate(&mut self) -> &mut Self{
         match self{
             Node::Constant(denied, ..) => denied.double_negate(),
-            Node::Variable { neg: denied, ..} => denied.double_negate(),
+            Node::Sentence { neg: denied, ..} => denied.double_negate(),
             Node::Operator { neg: denied, ..} => denied.double_negate(),
         };
         self
@@ -165,7 +162,7 @@ impl Node{
     pub fn reduce_negation(&mut self) -> &mut Self{
         match self{
             Node::Constant(denied, ..) => denied.reduce(),
-            Node::Variable { neg: denied, ..} => denied.reduce(),
+            Node::Sentence { neg: denied, ..} => denied.reduce(),
             Node::Operator { neg: denied, ..} => denied.reduce(),
         };
         self
@@ -401,12 +398,12 @@ impl Node{
 
                 s
             }
-            Self::Variable { neg: denied, name, .. } => {
+            Self::Sentence { neg: denied, sen, .. } => {
                 let mut s = String::new();
                 if denied.is_denied(){
                     s.push_str(notation.get_notation(Operator::NOT));
                 }
-                s.push_str(name);
+                s.push_str(sen.name());
                 s
             }
             Self::Constant(denied, b) => {
