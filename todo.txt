@@ -46,6 +46,7 @@ whenever (unimportant and/or complicated):
 - maybe make Constant/Variable type so we dont have to constantly check if the constant name is valid.
  leave in string versions of functions, though. let the user pick their poison.
 - Negation::apply(bool)? nicer syntax perhaps?
+- Universe::remove_{plural}_ref()? so people can do .iter() and save on memory.
 
 - optimize
 - OPTIMIZE

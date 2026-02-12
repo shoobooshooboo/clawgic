@@ -48,6 +48,19 @@ impl Universe{
         Ok(())
     }
 
+    ///removes the variable from the universe.
+    /// Returns true if the variable was in the universe.
+    pub fn remove_variable(&mut self, variable: &str) -> bool{
+        self.variables.remove(variable)
+    }
+
+    ///removes the variables from the universe.
+    pub fn remove_variables<It: Iterator<Item = String>>(&mut self, variables: It){
+        for var in variables{
+            self.variables.remove(&var);
+        }
+    }
+
     /// Adds a predicate to the Universe.
     /// Returns false if the predicate was already in the Universe. 
     pub fn insert_predicate(&mut self, predicate: Predicate) -> bool{
@@ -62,6 +75,19 @@ impl Universe{
     pub fn insert_predicates<It: Iterator<Item = Predicate>>(&mut self, predicates: It){
         for pred in predicates{
             self.predicates.entry(pred.clone()).or_default();
+        }
+    }
+
+    ///removes the predicate from the universe.
+    /// Returns true if the predicate was in the universe.
+    pub fn remove_predicate(&mut self, predicate: &Predicate) -> bool{
+        self.predicates.remove(predicate).is_some()
+    }
+
+    ///removes the predicate from the universe.
+    pub fn remove_predicates<It: Iterator<Item = Predicate>>(&mut self, predicates: It){
+        for pred in predicates{
+            self.predicates.remove(&pred);
         }
     }
 
@@ -80,14 +106,42 @@ impl Universe{
         }
     }
 
+    ///removes the sentence from the universe.
+    /// Returns true if the sentence was in the universe.
+    pub fn remove_sentence(&mut self, sentence: &Sentence) -> bool{
+        self.predicates.get_mut(sentence.predicate()).is_some_and(|m| m.remove(sentence).is_some())
+    }
+
+    ///removes the Sentences from the universe.
+    pub fn remove_sentences<It: Iterator<Item = Sentence>>(&mut self, sentences: It){
+        for sen in sentences{
+            self.predicates.get_mut(sen.predicate()).is_some_and(|m| m.remove(&sen).is_some());
+        }
+    }
+
     ///returns the set of variables.
     pub fn variables(&self) -> &HashSet<String>{
         &self.variables
     }
 
+    ///Whether the Universe contains the given variable.
+    pub fn contains_variable(&self, variable: &str) -> bool{
+        self.variables.contains(variable)
+    }
+
     ///returns an iterator of all the predicates.
     pub fn predicates(&self) -> std::collections::hash_map::Keys<'_, Predicate, HashMap<Sentence, bool>>{
         self.predicates.keys()
+    }
+
+    ///whether the universe contains the given predicate.
+    pub fn contains_predicate(&self, predicate: &Predicate) -> bool{
+        self.predicates.contains_key(predicate)
+    }
+
+    ///whether the universe contains the given sentence.
+    pub fn contains_sentence(&self, sentence: &Sentence) -> bool{
+        self.predicates.get(sentence.predicate()).is_some_and(|m| m.contains_key(sentence))
     }
 
     ///Gets all sentences and their truth values of the given predicate.
