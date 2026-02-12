@@ -733,7 +733,6 @@ impl ExpressionTree{
 
     ///checks if the two expressions are literally exactly the same (ignoring double negations).
     pub fn lit_eq(&self, other: &Self) -> bool{
-        //this can be optimized later, but for now, it's fine.
         self.root == other.root
     }
 
