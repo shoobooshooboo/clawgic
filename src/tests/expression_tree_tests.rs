@@ -304,7 +304,7 @@ fn replace_variable(expr1: &str, var: &str, subexpr: &str, expected: &str){
     let st = ExpressionTree::new(subexpr).unwrap();
     let res = ExpressionTree::new(expected).unwrap();
 
-    t1.replace_variable(var, &st);
+    t1.replace_sentence(var, &st);
     assert!(t1.lit_eq(&res));
 }
 
@@ -321,7 +321,7 @@ fn replace_variables(){
 
     let expected = ExpressionTree::new("~(BvD)&(E->F)->Cv~D").unwrap();
 
-    tree.replace_variables(&vars);
+    tree.replace_sentences(&vars);
 
     assert_eq!(tree.infix(None), expected.infix(None));
 }

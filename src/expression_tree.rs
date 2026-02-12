@@ -405,15 +405,15 @@ impl ExpressionTree{
     }
 
     /// Replaces all instances of var in the tree with new_expression. Adds all variables from new_expression to self as they are.
-    pub fn replace_variable(&mut self, var: &str, new_expression: &ExpressionTree) -> &mut Self{
-        if self.uni.contains_key(var){
-            self.uni.remove(var);
+    pub fn replace_sentence(&mut self, sentence: &Sentence, new_expression: &ExpressionTree) -> &mut Self{
+        if self.uni.contains_key(sentence){
+            self.uni.remove(sentence);
             for (name, val) in new_expression.uni.iter(){
                 if !self.uni.contains_key(name){
                     self.uni.insert(name.clone(), val.clone());
                 }
             }
-            Self::replace_variable_rec(&mut self.root, var, new_expression);
+            Self::replace_sentence_rec(&mut self.root, sentence, new_expression);
             self.value.replace(None);
         }
 
@@ -421,11 +421,11 @@ impl ExpressionTree{
     }
 
     /// Recursive helper function for `ExpressionTree::replace_variable()`
-    fn replace_variable_rec(cur_node: &mut Node, var: &str, new_expression: &ExpressionTree){
-        if cur_node.is_variable(){
-            let Node::Sentence { neg: denied, name} = cur_node.clone()
+    fn replace_sentence_rec(cur_node: &mut Node, sentence: &Setnence, new_expression: &ExpressionTree){
+        if cur_node.is_sentence(){
+            let Node::Sentence { neg: denied, sen} = cur_node.clone()
                 else{panic!("this should never happen (in replace_variable_rec())")};
-            if var == name{
+            if sentence == sen{
                 *cur_node = new_expression.root.clone();
                 if denied.is_denied(){
                     cur_node.deny();
@@ -434,25 +434,25 @@ impl ExpressionTree{
         }else if cur_node.is_operator(){
             let Node::Operator { neg: _, op: _, left, right } = cur_node 
                 else{panic!("this should never happen (in replace_variable_rec())")};
-            Self::replace_variable_rec(left, var, new_expression);
-            Self::replace_variable_rec(right, var, new_expression);
+            Self::replace_sentence_rec(left, sentence, new_expression);
+            Self::replace_sentence_rec(right, sentence, new_expression);
         }
     }
 
     /// Replaces all instances of var in the tree with new_expression. Adds all variables from new_expression to self as they are.
-    pub fn replace_variables(&mut self, vars: &HashMap<String, &ExpressionTree>) -> &mut Self{
+    pub fn replace_sentences(&mut self, sentences: &HashMap<Sentence, &ExpressionTree>) -> &mut Self{
         //gotta remove all vars before adding the new ones.
         let mut something_in_vars = false;
-        let mut was_in_vars = Vec::with_capacity(vars.len());
-        for (var, _) in vars.iter(){
-            if self.uni.remove(var).is_some(){
+        let mut was_in_vars = Vec::with_capacity(sentences.len());
+        for (sen, _) in sentences.iter(){
+            if self.uni.remove(sen).is_some(){
                 was_in_vars.push(true);
                 something_in_vars = true;
             }else{
                 was_in_vars.push(false);
             }
         }
-        for (i, (_, new_expression)) in vars.iter().enumerate(){
+        for (i, (_, new_expression)) in sentences.iter().enumerate(){
             if was_in_vars[i]{
                 for (name, val) in new_expression.uni.iter(){
                     if !self.uni.contains_key(name){
@@ -462,7 +462,7 @@ impl ExpressionTree{
             }
         }
         if something_in_vars{
-            Self::replace_variables_rec(&mut self.root, vars);
+            Self::replace_sentences_rec(&mut self.root, sentences);
             self.value.replace(None);
         }
 
@@ -470,31 +470,28 @@ impl ExpressionTree{
     }
 
     /// Recursive helper function for `ExpressionTree::replace_variable()`
-    fn replace_variables_rec(cur_node: &mut Node, vars: &HashMap<String, &ExpressionTree>){
-        if cur_node.is_variable(){
-            let Node::Sentence { neg: denied, name} = cur_node.clone()
+    fn replace_sentences_rec(cur_node: &mut Node, sentences: &HashMap<Sentence, &ExpressionTree>){
+        if cur_node.is_sentence(){
+            let Node::Sentence { neg: denied, sen} = cur_node.clone()
                 else{panic!("this should never happen (in replace_variable_rec())")};
-            match vars.get(&name){
-                Some(new_expression) => {
-                    *cur_node = new_expression.root.clone();
-                    if denied.is_denied(){
-                        cur_node.deny();
-                    }
-                },
-                None => (),
+            if let Some(new_expression) = sentences.get(&sen){
+                *cur_node = new_expression.root.clone();
+                if denied.is_denied(){
+                    cur_node.deny();
+                }
             }
         }else if cur_node.is_operator(){
             let Node::Operator { neg: _, op: _, left, right } = cur_node 
                 else{panic!("this should never happen (in replace_variable_rec())")};
-            Self::replace_variables_rec(left, vars);
-            Self::replace_variables_rec(right, vars);
+            Self::replace_sentences_rec(left, sentences);
+            Self::replace_sentences_rec(right, sentences);
         }
     }
 
     ///replaces all instances of old expression in the tree with new expression.
     pub fn replace_expression(&mut self, old: &ExpressionTree, new: &ExpressionTree){
         Self::replace_expression_rec(&mut self.root, old, new);
-        let mut new_vars= Self::create_uni(&self.root, HashMap::new());
+        let mut new_vars= Self::create_uni(&self.root, Universe::new());
 
         for (name, val) in self.uni.iter(){
            if let Some(var) = new_vars.get_mut(name){
@@ -515,12 +512,12 @@ impl ExpressionTree{
             *cur_node = new.root.clone();
             return;
         }
-        if cur_node.is_variable() && old.root.is_variable(){
-            let Node::Sentence { neg: cur_denied, name: cur_name } = cur_node 
+        if cur_node.is_sentence() && old.root.is_sentence(){
+            let Node::Sentence { neg: cur_denied, sen: cur_sen } = cur_node 
                 else {panic!("this shouldn't be possible (replace_expression_rec)")};
-            let Node::Sentence { neg: old_denied, name: old_name } = &old.root
+            let Node::Sentence { neg: old_denied, sen: old_sen } = &old.root
                 else {panic!("this shouldn't be possible (replace_expression_rec)")};
-            if old_name == cur_name{
+            if old_sen == cur_sen{
                 let deny = *cur_denied != *old_denied;
                 *cur_node = new.root.clone();
                 if deny{
@@ -674,9 +671,7 @@ impl ExpressionTree{
 
     ///consumes two trees and returns a tree in the form of self & second.
     pub fn and(mut self, second: Self) -> Self{
-        for (name, val) in second.uni{
-            self.uni.entry(name).or_insert(val);
-        }
+        self.uni.add_universe(&second.uni);
 
         Self { 
             uni: self.uni, 
@@ -687,9 +682,8 @@ impl ExpressionTree{
 
     ///consumes two trees and returns a tree in the form of self v (wedge) second.
     pub fn or(mut self, second: Self) -> Self{
-        for (name, val) in second.uni{
-            self.uni.entry(name).or_insert(val);
-        }
+                self.uni.add_universe(&second.uni);
+
 
         Self { 
             uni: self.uni, 
@@ -700,9 +694,8 @@ impl ExpressionTree{
 
     ///consumes two trees and returns a tree in the form of self->consequent.
     pub fn con(mut self, consequent: Self) -> Self{
-        for (name, val) in consequent.uni{
-            self.uni.entry(name).or_insert(val);
-        }
+        self.uni.add_universe(&consequent.uni);
+
 
         Self { 
             uni: self.uni, 
@@ -713,9 +706,8 @@ impl ExpressionTree{
 
     ///consumes two trees and returns a tree in the form of self->second.
     pub fn bicon(mut self: Self, second: Self) -> Self{
-        for (name, val) in second.uni{
-            self.uni.entry(name).or_insert(val);
-        }
+        self.uni.add_universe(&second.uni);
+
 
         Self { 
             uni: self.uni, 

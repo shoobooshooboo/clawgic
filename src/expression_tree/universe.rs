@@ -105,10 +105,24 @@ impl Universe{
         self.predicates.get_mut(sentence.predicate()).and_then(|map| map.get_mut(sentence))
     }
 
-    ///Returns true if the two universes have the same constants, predicates, and concrete sentences
-    pub fn syn_eq(&self, other: &Self) -> bool{
-
+    ///Adds all the contents of another universe to this one. 
+    ///If there are conflicts, defaults to other's values.
+    pub fn add_universe(&mut self, other: &Universe){
+        self.insert_variables(other.variables.iter().cloned());
+        self.insert_predicates(other.predicates().cloned());
+        other.predicates.iter().for_each(|(_, m)| 
+            m.iter().for_each(|(s, &b)| {self.insert_sentence(s.clone(), b);}));
     }
+
+    ///Makes self entirely distinct from other.
+    pub fn subtract_universe(&mut self, other: &Universe){
+        todo!();
+    }
+
+    // ///Returns true if the two universes have the same constants, predicates, and concrete sentences
+    // pub fn syn_eq(&self, other: &Self) -> bool{
+
+    // }
 }
 
 impl PartialEq for Universe{

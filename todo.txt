@@ -5,7 +5,7 @@ current goals v0.8.0 (predicate logic update titled: "the big one"):
     X replace variables with predicates
         X make predicates
         X make sentences
-    - replace Node::Variable with Node::Sentence
+    X replace Node::Variable with Node::Sentence
     - change shunting-yard to accomodate predicates
     X create Context/Universe struct to hold truth values and constants.
         - actually use Universe in ExpressionTree impl
@@ -41,10 +41,11 @@ v1.0 (full release update: "let's be clawgical about this"):
 - benchmarks
 - reasonable optimizations
 
-whenever (unimportant and complicated):
+whenever (unimportant and/or complicated):
 - .comm_eq() (tells whether two expressions are commutatively equivalent) maybe impossible.
 - maybe make Constant/Variable type so we dont have to constantly check if the constant name is valid.
  leave in string versions of functions, though. let the user pick their poison.
+- Negation::apply(bool)? nicer syntax perhaps?
 
 - optimize
 - OPTIMIZE
