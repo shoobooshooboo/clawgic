@@ -166,13 +166,19 @@ impl Universe{
         self.insert_variables(other_variables.into_iter());
         self.insert_predicates(other_predicates.keys().cloned());
         other_predicates.into_iter().for_each(|(_, m)| 
-            m.into_iter().for_each(|(s, b)| {self.insert_sentence(s, b);}));
+            m.into_iter().for_each(|(s, b)| {self.insert_sentence(s, b);})
+        );
     }
 
     ///Makes self entirely distinct from other.
     pub fn subtract_universe(&mut self, other: &Universe){
         self.remove_variables(other.variables.iter().cloned());
         self.remove_predicates(other.predicates().cloned());
+    }
+
+    pub fn clear(&mut self){
+        self.variables.clear();
+        self.predicates.clear();
     }
 
     // ///Returns true if the two universes have the same constants, predicates, and concrete sentences
