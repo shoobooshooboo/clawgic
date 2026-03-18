@@ -13,7 +13,9 @@ pub enum Shell{
     /// Boolean constant. True or False.
     Constant(Negation, bool),
     /// Open Parentheses.
-    Parentheses,
+    OpenParentheses,
+    ///Closed Parantheses.
+    ClosedParentheses,
     /// Boolean denial operator.
     Tilde(Negation),
 }
@@ -43,10 +45,18 @@ impl Shell{
         }
     }
 
-    /// Whether the `Shell` is an `Parentheses`.
-    pub fn is_parentheses(&self) -> bool{
+    /// Whether the `Shell` is an `OpenParentheses`.
+    pub fn is_open_parentheses(&self) -> bool{
         match self{
-            Self::Parentheses => true,
+            Self::OpenParentheses => true,
+            _ => false,
+        }
+    }
+
+    /// Whether the `Shell` is a `ClosedParentheses`.
+    pub fn is_closed_parentheses(&self) -> bool{
+        match self{
+            Self::ClosedParentheses => true,
             _ => false,
         }
     }

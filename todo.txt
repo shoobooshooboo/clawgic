@@ -6,7 +6,11 @@ current goals v0.8.0 (predicate logic update titled: "the big one"):
         X make predicates
         X make sentences
     X replace Node::Variable with Node::Sentence
-    - change shunting-yard to accomodate predicates
+    X tokenize before fixing shunting-yard (IF YOU FORGOT WHY YOU'RE DOING THIS, CALL H)
+    X change shunting-yard to accomodate predicates
+    - Restructure OperatorNotation to have many read values and one write value per operator. 
+        - (just a list where the first index is the "default/write" and all of them are reads.)
+    - Disallow OperatorNotation from having any notations that use anything alphanum (to avoid ambiguity when tokenizing);
     X create Context/Universe struct to hold truth values and constants.
         - actually use Universe in ExpressionTree impl
 ##TEST##

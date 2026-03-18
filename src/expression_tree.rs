@@ -6,15 +6,14 @@ mod shell;
 use shell::Shell;
 use node::Node;
 use node::operator::Operator;
-use node::sentence::Predicate;
 use std::cell::Cell;
 use std::collections::HashMap;
 
 use crate::expression_tree::node::negation::Negation;
 use crate::expression_tree::universe::Universe;
 use crate::operator_notation::OperatorNotation;
-use crate::ClawgicError;
-use crate::prelude::Sentence;
+use crate::{ClawgicError, utils};
+use crate::prelude::{Predicate, Sentence};
 
 /// Expression tree for logical expressions in SL.
 #[derive(Debug, Clone)]
@@ -48,7 +47,7 @@ impl ExpressionTree{
 
     /// Constructs a new expression tree given a string representation of an infix logical expression.
     pub fn new(expression: &str) -> Result<Self, ClawgicError>{
-        let shells = &mut Self::shunting_yard(expression)?;
+        let shells = &mut Self::shunting_yard(Self::tokenize_expression(expression)?)?;
         let root = Self::construct_tree(shells)?;
         let vars = Self::create_uni(&root, Universe::new());
         if !shells.is_empty(){
@@ -64,7 +63,7 @@ impl ExpressionTree{
     /// Constructs a new expression tree given a string representation of an infix logical expression and an 
     /// `OperatorNotation` detailing the accepted operators.
     pub fn new_with_notation(expression: &str, notation: &OperatorNotation) -> Result<Self, ClawgicError>{
-        let shells = &mut Self::shunting_yard_with_notation(expression, notation)?;
+        let shells = &mut Self::shunting_yard(Self::tokenize_expression(expression, notation)?)?;
         let root = Self::construct_tree(shells)?;
         let vars = Self::create_uni(&root, Universe::new());
         if !shells.is_empty(){
@@ -77,218 +76,172 @@ impl ExpressionTree{
         })
     }
 
-    /// Takes a string representation of an infix logical expression and an `OperatorNotation` and produces a Vec of `Shell`s.
-    fn shunting_yard_with_notation(mut expression: &str, notation: &OperatorNotation) -> Result<Vec<Shell>, ClawgicError>{
-        expression = expression.trim();
-        let mut shells = Vec::<Shell>::new();
-        let mut operators = Vec::<Shell>::new();
+    /// Tokenizes a string representation of an infix logical expression and produces a Vec of `Shell`'s
+    fn tokenize_expression(expression: &str) -> Result<Vec<Shell>, ClawgicError>{
+        //using chars enforces exactly one pass.
+        let mut chars = expression.chars().skip_while(|c| c.is_whitespace());
+        let mut result = Vec::new();
+        let mut c = match chars.next(){
+            Some(next_char) => next_char,
+            None => return Ok(result)
+        };
 
-        while !expression.is_empty(){
-            expression = expression.trim_start();
-            let mut negation = Negation::default();
-            while expression.starts_with(notation.get_notation(Operator::NOT)){
-                negation.negate();
-                expression = &expression[notation.get_notation(Operator::NOT).as_bytes().len()..];
+        while chars.clone().next().is_some(){
+            //handle negations
+            if c == '~' || c == '!' || c == '¬'{
+                let mut negation = Negation::default();
+                while c == '~' || c == '!' || c == '¬'{
+                    negation.negate();
+                    c = match chars.next(){
+                        Some(next_char) => next_char,
+                        None => break,
+                    }
+                }
+
+                result.push(Shell::Tilde(negation));
             }
-
-            if expression.starts_with("TRUE"){
-                shells.push(Shell::Constant(negation, true));
-                expression = &expression[4..];
-                continue;
-            }else if expression.starts_with("FALSE"){
-                shells.push(Shell::Constant(negation, false));
-                expression = &expression[5..];
-                continue;
-            }
-
-            if negation.count() > 0{
-                operators.push(Shell::Tilde(negation));
-            }
-
-            let mut chars = expression.chars();
-            let mut cur_char = match chars.next(){
-                Some(c) => c,
-                None => return Err(ClawgicError::InvalidExpression),
-            };
-            let mut chars_consumed = 0;
-
-            if cur_char.is_uppercase(){
-                loop{
-                    chars_consumed += cur_char.len_utf8();
-                    cur_char = match chars.next(){
-                        Some(c) => c,
+            //handle predicates
+            else if c.is_uppercase(){
+                let mut substring = String::new();
+                while c.is_uppercase(){
+                    substring.push(c);
+                    c = match chars.next(){
+                        Some(next_char) => next_char,
                         None => break,
                     };
-                    if !cur_char.is_numeric(){
-                        break;
+                }
+
+                if substring == "TRUE"{
+                    result.push(Shell::Constant(Negation::default(), true));
+                }else if substring == "FALSE"{
+                    result.push(Shell::Constant(Negation::default(), false));
+                }else if substring.len() > 1{
+                    return Err(ClawgicError::InvalidPredicateName(substring));
+                }else{
+                    while c.is_numeric(){
+                        substring.push(c);
+                        c = match chars.next(){
+                            Some(next_char) => next_char,
+                            None => break,
+                        };
                     }
-                }
-                if negation.count() > 0{
-                    operators.pop();
-                }
-                shells.push(Shell::Variable(negation, expression[0..chars_consumed].to_string()));
-            }
-            else if notation.get_prefix_operator(expression).is_some(){
-                let op: Operator = notation.get_prefix_operator(expression).unwrap();
-                chars_consumed = notation.get_notation(op).as_bytes().len();
-                    
-                match operators.last(){
-                    None => operators.push(Shell::Operator(Negation::default(), op)),
-                    Some(_) => {
-                        while let Some(Shell::Operator(_, o)) = operators.last(){
-                            if o.precedence() < op.precedence(){
-                                break;
-                            }else if o.precedence() == op.precedence(){
-                                return Err(ClawgicError::AmbiguousExpression);
+                    let pred_name = substring.clone();
+                    let mut variables = Vec::new();
+                    if c == '('{
+                        c = match chars.next(){
+                            Some(next_char) => next_char,
+                            None => break,
+                        };
+
+                        while c != ')'{
+                            substring.clear();
+                            while c != ','{
+                                substring.push(c);
+                                c = match chars.next(){
+                                    Some(next_char) => next_char,
+                                    None => break,
+                                };
                             }
-                            shells.push(operators.pop().unwrap());
-                        }
-                        if let Some(Shell::Tilde(n)) = operators.last(){
-                            negation = *n;
-                            operators.pop();
-                        }
-                        operators.push(Shell::Operator(negation, op));
-                    },
-                }
-            }
-            else if cur_char == '('{
-                operators.push(Shell::Parentheses);
-                chars_consumed = 1;
-            }
-            else if cur_char == ')'{
-                while operators.last().is_some_and(|op| !op.is_parentheses()){
-                    shells.push(operators.pop().unwrap());
-                }
-                if operators.pop().is_none_or(|x| !x.is_parentheses()){
-                    return Err(ClawgicError::InvalidParentheses);
-                }
-                if let Some(Shell::Tilde(n)) = operators.pop_if(|s| s.is_tilde()){
-                    match shells.pop(){
-                        Some(s) => {
-                            if let Shell::Operator(_, op) = s{
-                                shells.push(Shell::Operator(n, op));
-                            }else{
-                                return Err(ClawgicError::InvalidExpression)
+
+                            if !utils::is_valid_var_name(&substring){
+                                return Err(ClawgicError::InvalidVariableName(substring));
                             }
-                        },
-                        None => return Err(ClawgicError::InvalidExpression),
+
+                            variables.push(substring.clone());
+                            c = match chars.next(){
+                                Some(next_char) => next_char,
+                                None => break,
+                            };
+                        }
+
+                        result.push(Shell::Sentence(Negation::default(), Predicate::new(&pred_name, variables.len()).unwrap(), variables));
+                        c = match chars.next(){
+                            Some(next_char) => next_char,
+                            None => break,
+                        };
                     }
                 }
-                chars_consumed = 1;
-            }
-            else{
-                if cur_char.is_lowercase(){
-                    return Err(ClawgicError::InvalidPredicateName(cur_char.to_string()));
-                }
-                return Err(ClawgicError::UnknownSymbol);
-            }
-
-            expression = &expression[chars_consumed..];
-        }
-
-        while !operators.is_empty(){
-            shells.push(operators.pop().unwrap());
-        }
-
-        Ok(shells)
-    }
-
-    /// # Shunting yard algorithm.
-    /// 
-    /// Takes a string representation of an infix logical expression and produces a Vec of `Shell`s.
-    fn shunting_yard(mut expression: &str) -> Result<Vec<Shell>, ClawgicError>{
-        expression = expression.trim();
-        let mut shells = Vec::<Shell>::new();
-        let mut operators = Vec::<Shell>::new();
-
-        while !expression.is_empty(){
-            expression = expression.trim_start();
-            let mut negation = Negation::default();
-            while expression.starts_with('~') || expression.starts_with('!') || expression.starts_with('¬'){
-                negation.negate();
-                expression = if expression.starts_with('¬') {&expression[2..]} else {&expression[1..]};
-            }
-
-            if expression.starts_with("TRUE"){
-                shells.push(Shell::Constant(negation, true));
-                expression = &expression[4..];
-                continue;
-            }else if expression.starts_with("FALSE"){
-                shells.push(Shell::Constant(negation, false));
-                expression = &expression[5..];
-                continue;
-            }
-
-            if negation.count() > 0{
-                operators.push(Shell::Tilde(negation));
-            }
-
-            let mut chars = expression.chars();
-            let mut cur_char = match chars.next(){
-                Some(c) => c,
-                None => return Err(ClawgicError::InvalidExpression),
-            };
-            let mut chars_consumed = cur_char.len_utf8();
-
-            if cur_char.is_uppercase(){
-                loop{
-                    cur_char = match chars.next(){
-                        Some(c) => c,
-                        None => break,
-                    };
-                    if !cur_char.is_numeric(){
-                        break;
-                    }
-                    chars_consumed += cur_char.len_utf8();
-                }
-                if negation.count() > 0{
-                    operators.pop();
-                }
-                shells.push(Shell::Variable(negation, expression[0..chars_consumed].to_string()));
-            }
-            else if cur_char == '&' || cur_char == '*' || cur_char == '∧' || cur_char == '^' || cur_char == '⋅' ||
-                    cur_char == 'v' || cur_char == '∨' || cur_char == '|' || cur_char == '+' || 
-                    cur_char == '<' || cur_char == '-' || cur_char == '>' || cur_char == '➞' || cur_char == '⟷' {
+            } else if c == '&' || c == '*' || c == '∧' || c == '^' || c == '⋅' ||
+                    c == 'v' || c == '∨' || c == '|' || c == '+' || 
+                    c == '<' || c == '-' || c == '>' || c == '➞' || c == '⟷' {
                 let op: Operator;
-                match cur_char{
+                match c{
                     '&' | '*' | '∧' | '^' | '⋅' => op = Operator::AND,
                     'v' | '|' | '+' | '∨' => op = Operator::OR,
                     '➞' => op = Operator::CON,
                     '⟷' => op = Operator::BICON,
                     '<' => {
                         op = Operator::BICON;
-                        chars_consumed += 1;
                         loop{
-                            cur_char = match chars.next(){
+                            c = match chars.next(){
                                 Some(c) => c,
                                 None => return Err(ClawgicError::UnknownSymbol),
                             };
-                            if cur_char != '-'{
+                            if c != '-'{
                                 break;
                             }
-                            chars_consumed += 1
                         }
-                        if cur_char != '>'{
+                        if c != '>'{
                             return Err(ClawgicError::UnknownSymbol);
                         }
                     }
                     _ /*'-' | '>' */ => {
                         op = Operator::CON;
-                        while cur_char == '-'{
-                            cur_char = match chars.next(){
+                        while c == '-'{
+                            c = match chars.next(){
                                 Some(c) => c,
                                 None => return Err(ClawgicError::UnknownSymbol),
                             };
-                            chars_consumed += 1;
                         }
-                        if cur_char != '>'{
+                        if c != '>'{
                             return Err(ClawgicError::UnknownSymbol);
                         }
                     }
                 }
-                match operators.last(){
-                    None => operators.push(Shell::Operator(Negation::default(), op)),
-                    Some(_) => {
+                result.push(Shell::Operator(Negation::default(), op));
+                c = match chars.next(){
+                    Some(next_char) => next_char,
+                    None => break,
+                };
+            }else{
+                return Err(ClawgicError::UnknownSymbol);
+            }
+        }
+
+        Ok(result)
+    }
+
+    /// # Shunting yard algorithm.
+    /// 
+    /// Takes a tokenized version of an infix logical expression and converts to postfix.
+    fn shunting_yard(mut expression: Vec<Shell>) -> Result<Vec<Shell>, ClawgicError>{
+        let mut shells = Vec::<Shell>::new();
+        let mut operators = Vec::<Shell>::new();
+
+        for token in expression{
+            match token{
+                Shell::Tilde(negation) => operators.push(Shell::Tilde(negation)),
+                Shell::OpenParentheses => operators.push(Shell::OpenParentheses),
+                Shell::Constant(mut negation, value) => {
+                    if operators.last().is_some_and(|op| op.is_tilde()){
+                        negation = match operators.pop().unwrap(){
+                            Shell::Tilde(n) => n,
+                            _ => panic!(),
+                        };
+                    }
+                    shells.push(Shell::Constant(negation, value));
+                },
+                Shell::Sentence(mut negation, predicate, vars) => {
+                    if operators.last().is_some_and(|op| op.is_tilde()){
+                        negation = match operators.pop().unwrap(){
+                            Shell::Tilde(n) => n,
+                            _ => panic!(),
+                        };
+                    }
+                    shells.push(Shell::Sentence(negation, predicate, vars));
+                },
+                Shell::Operator(mut negation, op) => {
+                    if !operators.is_empty(){
                         while let Some(Shell::Operator(_, o)) = operators.last(){
                             if o.precedence() < op.precedence(){
                                 break;
@@ -301,41 +254,30 @@ impl ExpressionTree{
                             negation = *n;
                             operators.pop();
                         }
-                        operators.push(Shell::Operator(negation, op));
-                    },
-                }
-            }
-            else if cur_char == '('{
-                operators.push(Shell::Parentheses);
-            }
-            else if cur_char == ')'{
-                while operators.last().is_some_and(|op| !op.is_parentheses()){
-                    shells.push(operators.pop().unwrap());
-                }
-                if operators.pop().is_none_or(|x| !x.is_parentheses()){
-                    return Err(ClawgicError::InvalidParentheses);
-                }
-                if let Some(Shell::Tilde(n)) = operators.pop_if(|s| s.is_tilde()){
-                    match shells.pop(){
-                        Some(s) => {
-                            if let Shell::Operator(_, op) = s{
-                                shells.push(Shell::Operator(n, op));
-                            }else{
-                                return Err(ClawgicError::InvalidExpression)
-                            }
-                        },
-                        None => return Err(ClawgicError::InvalidExpression),
+                    }
+                    operators.push(Shell::Operator(negation, op));
+                },
+                Shell::ClosedParentheses => {
+                    while operators.last().is_some_and(|op| !op.is_open_parentheses()){
+                        shells.push(operators.pop().unwrap());
+                    }
+                    if operators.pop().is_none_or(|x| !x.is_open_parentheses()){
+                        return Err(ClawgicError::InvalidParentheses);
+                    }
+                    if let Some(Shell::Tilde(n)) = operators.pop_if(|s| s.is_tilde()){
+                        match shells.pop(){
+                            Some(s) => {
+                                if let Shell::Operator(_, op) = s{
+                                    shells.push(Shell::Operator(n, op));
+                                }else{
+                                    return Err(ClawgicError::InvalidExpression)
+                                }
+                            },
+                            None => return Err(ClawgicError::InvalidExpression),
+                        }
                     }
                 }
             }
-            else{
-                if cur_char.is_lowercase(){
-                    return Err(ClawgicError::InvalidPredicateName(cur_char.to_string()));
-                }
-                return Err(ClawgicError::UnknownSymbol);
-            }
-
-            expression = &expression[chars_consumed..];
         }
 
         while !operators.is_empty(){
@@ -357,7 +299,7 @@ impl ExpressionTree{
                     },
                     Shell::Sentence(denied, predicate, vars) => Node::Sentence { neg: denied, sen: predicate.inst(&vars)?},
                     Shell::Constant(neg, value) => Node::Constant(neg, value),
-                    Shell::Parentheses => return Err(ClawgicError::InvalidParentheses),
+                    Shell::OpenParentheses | Shell::ClosedParentheses => return Err(ClawgicError::InvalidParentheses),
                     Shell::Tilde(_) => return Err(ClawgicError::InvalidExpression),
                 }
             },
@@ -1259,4 +1201,4 @@ impl std::ops::ShlAssign for ExpressionTree{
     fn shl_assign(&mut self, rhs: Self) {
         *self = rhs.con(self.clone());
     }
-} 
+}
