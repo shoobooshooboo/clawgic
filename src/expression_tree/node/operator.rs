@@ -4,7 +4,7 @@
 /// 
 /// The Negation operator is not actually supported in operator nodes. It's inclusion is just so that
 /// `Operator` is all encompassing and can be used for extra things.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Operator{
     /// Negation. ~
     NOT,

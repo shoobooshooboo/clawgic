@@ -11,6 +11,7 @@ current goals v0.8.0 (predicate logic update titled: "the big one"):
     - Restructure OperatorNotation to have many read values and one write value per operator. 
         - (just a list where the first index is the "default/write" and all of them are reads.)
     - Disallow OperatorNotation from having any notations that use anything alphanum (to avoid ambiguity when tokenizing);
+    - change tokenize_expression() to take a notation
     X create Context/Universe struct to hold truth values and constants.
         - actually use Universe in ExpressionTree impl
 ##TEST##

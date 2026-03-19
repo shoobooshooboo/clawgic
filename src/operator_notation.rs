@@ -1,8 +1,34 @@
+use std::{collections::HashMap, ops::Index};
+
 use crate::expression_tree::node::operator::Operator;
+
+/// Fake HashMap for OperatorNotation.
+struct NotationMap{
+    map: [Vec<String> ; 5],
+}
+
+impl NotationMap{
+    pub fn new(map: HashMap<Operator, (String, Vec<String>)>) -> NotationMap{
+        let mut nm = Self { map: [const {Vec::new()} ; 5] };
+        for (op, (first, mut rest)) in map{
+            rest.insert(0, first);
+            nm.map[op as usize] = rest;
+        }
+        nm
+    }
+}
+
+impl Index<Operator> for NotationMap{
+    type Output = Vec<String>;
+
+    fn index(&self, index: Operator) -> &Self::Output {
+        &self.map[index as usize]
+    }
+}
 
 ///Contains a set of symbols for printing `ExpressionTree`s. Used in certain `ExpressionTree` functions to customize expression printing.
 pub struct OperatorNotation{
-    map: [String; 5],
+    map: NotationMap,
 }
 
 impl OperatorNotation{
@@ -14,13 +40,13 @@ impl OperatorNotation{
     /// * conditional ->
     /// * biconditional <->
     pub fn ascii() -> Self{
-        Self { map: [
-            "~".to_string(),
-            "&".to_string(),
-            "v".to_string(),
-            "->".to_string(),
-            "<->".to_string(),
-            ]
+        Self { map: NotationMap::new([
+            (Operator::NOT, ("~".to_string(), vec!["¬".to_string(), "!".to_string()])),
+            (Operator::AND, ("&".to_string(), vec!["^".to_string(), "∧".to_string(), "*".to_string(), "⋅".to_string()])),
+            (Operator::OR, ("v".to_string(), vec!["∨".to_string(), "|".to_string(), "+".to_string()])),
+            (Operator::CON, ("->".to_string(), vec!["➞".to_string(), ">".to_string(), "-->".to_string()])),
+            (Operator::BICON, ("<->".to_string(), vec!["⟷".to_string(), "<>".to_string(), "<-->".to_string()])),
+            ].into_iter().collect())
         }
     }
 
@@ -32,13 +58,13 @@ impl OperatorNotation{
     /// * conditional ➞
     /// * biconditional ⟷
     pub fn mathematical() -> Self{
-        Self { map: [
-            "¬".to_string(),
-            "∧".to_string(),
-            "∨".to_string(),
-            "➞".to_string(),
-            "⟷".to_string(),
-            ]
+        Self { map: NotationMap::new([
+            (Operator::NOT, ("¬".to_string(), vec!["~".to_string(), "!".to_string()])),
+            (Operator::AND, ("∧".to_string(), vec!["^".to_string(), "&".to_string(), "*".to_string(), "⋅".to_string()])),
+            (Operator::OR, ("v".to_string(), vec!["∨".to_string(), "|".to_string(), "+".to_string()])),
+            (Operator::CON, ("➞".to_string(), vec!["->".to_string(), ">".to_string(), "-->".to_string()])),
+            (Operator::BICON, ("⟷".to_string(), vec!["<->".to_string(), "<>".to_string(), "<-->".to_string()])),
+            ].into_iter().collect())
         }
     }
 
@@ -50,13 +76,13 @@ impl OperatorNotation{
     /// * conditional ->
     /// * biconditional <->
     pub fn mathematical_ascii() -> Self{
-        Self { map: [
-            "~".to_string(),
-            "^".to_string(),
-            "v".to_string(),
-            "->".to_string(),
-            "<->".to_string(),
-            ]
+        Self { map: NotationMap::new([
+            (Operator::NOT, ("~".to_string(), vec!["¬".to_string(), "!".to_string()])),
+            (Operator::AND, ("^".to_string(), vec!["&".to_string(), "∧".to_string(), "*".to_string(), "⋅".to_string()])),
+            (Operator::OR, ("v".to_string(), vec!["∨".to_string(), "|".to_string(), "+".to_string()])),
+            (Operator::CON, ("->".to_string(), vec!["➞".to_string(), ">".to_string(), "-->".to_string()])),
+            (Operator::BICON, ("<->".to_string(), vec!["⟷".to_string(), "<>".to_string(), "<-->".to_string()])),
+            ].into_iter().collect())
         }
     }
 
@@ -68,13 +94,13 @@ impl OperatorNotation{
     /// * conditional ➞
     /// * biconditional ⟷
     pub fn bits() -> Self{
-        Self { map: [
-            "¬".to_string(),
-            "⋅".to_string(),
-            "+".to_string(),
-            "➞".to_string(),
-            "⟷".to_string(),
-            ]
+        Self { map: NotationMap::new([
+            (Operator::NOT, ("¬".to_string(), vec!["~".to_string(), "!".to_string()])),
+            (Operator::AND, ("⋅".to_string(), vec!["^".to_string(), "&".to_string(), "*".to_string(), "∧".to_string()])),
+            (Operator::OR, ("+".to_string(), vec!["∨".to_string(), "|".to_string(), "v".to_string()])),
+            (Operator::CON, ("➞".to_string(), vec!["->".to_string(), ">".to_string(), "-->".to_string()])),
+            (Operator::BICON, ("⟷".to_string(), vec!["<->".to_string(), "<>".to_string(), "<-->".to_string()])),
+            ].into_iter().collect())
         }
     }
 
@@ -86,13 +112,13 @@ impl OperatorNotation{
     /// * conditional ->
     /// * biconditional <->
     pub fn bits_ascii() -> Self{
-        Self { map: [
-            "~".to_string(),
-            "*".to_string(),
-            "+".to_string(),
-            "->".to_string(),
-            "<->".to_string(),
-            ]
+        Self { map: NotationMap::new([
+            (Operator::NOT, ("~".to_string(), vec!["¬".to_string(), "!".to_string()])),
+            (Operator::AND, ("*".to_string(), vec!["&".to_string(), "∧".to_string(), "^".to_string(), "⋅".to_string()])),
+            (Operator::OR, ("+".to_string(), vec!["∨".to_string(), "|".to_string(), "v".to_string()])),
+            (Operator::CON, ("->".to_string(), vec!["➞".to_string(), ">".to_string(), "-->".to_string()])),
+            (Operator::BICON, ("<->".to_string(), vec!["⟷".to_string(), "<>".to_string(), "<-->".to_string()])),
+            ].into_iter().collect())
         }
     }
 
@@ -104,13 +130,13 @@ impl OperatorNotation{
     /// * conditional ➞
     /// * biconditional ⟷
     pub fn boolean() -> Self{
-        Self { map: [
-            "!".to_string(),
-            "&".to_string(),
-            "|".to_string(),
-            "➞".to_string(),
-            "⟷".to_string(),
-            ]
+        Self { map: NotationMap::new([
+            (Operator::NOT, ("!".to_string(), vec!["~".to_string(), "¬".to_string()])),
+            (Operator::AND, ("&".to_string(), vec!["^".to_string(), "⋅".to_string(), "*".to_string(), "∧".to_string()])),
+            (Operator::OR, ("|".to_string(), vec!["∨".to_string(), "+".to_string(), "v".to_string()])),
+            (Operator::CON, ("➞".to_string(), vec!["->".to_string(), ">".to_string(), "-->".to_string()])),
+            (Operator::BICON, ("⟷".to_string(), vec!["<->".to_string(), "<>".to_string(), "<-->".to_string()])),
+            ].into_iter().collect())
         }
     }
 
@@ -122,89 +148,55 @@ impl OperatorNotation{
     /// * conditional ->
     /// * biconditional <->
     pub fn boolean_ascii() -> Self{
-        Self { map: [
-            "!".to_string(),
-            "&".to_string(),
-            "|".to_string(),
-            "->".to_string(),
-            "<->".to_string(),
-            ]
+        Self { map: NotationMap::new([
+            (Operator::NOT, ("!".to_string(), vec!["~".to_string(), "¬".to_string()])),
+            (Operator::AND, ("&".to_string(), vec!["^".to_string(), "⋅".to_string(), "*".to_string(), "∧".to_string()])),
+            (Operator::OR, ("|".to_string(), vec!["∨".to_string(), "+".to_string(), "v".to_string()])),
+            (Operator::CON, ("->".to_string(), vec!["➞".to_string(), ">".to_string(), "-->".to_string()])),
+            (Operator::BICON, ("<->".to_string(), vec!["⟷".to_string(), "<>".to_string(), "<-->".to_string()])),
+            ].into_iter().collect())
         }
     }
 
     ///Returns the notation of the given operator.
-    pub fn get_notation(&self, op: Operator) -> &str{
-        &self.map[op as usize]
+    pub fn get_default_notation(&self, op: Operator) -> &str{
+        &self.map[op][0]
+    }
+
+    ///Returns all notations of the given operator.
+    pub fn get_all_notations(&self, op: Operator) -> &Vec<String>{
+        &self.map[op]
     }
 
     ///Returns the operator that matches the given notation (if there is any)
     pub fn get_operator(&self, notation: &str) -> Option<Operator>{
-        for (i, n) in self.map.iter().enumerate(){
-            if notation == n{
-                return Some(match i{
-                    0 => Operator::NOT,
-                    1 => Operator::AND,
-                    2 => Operator::OR,
-                    3 => Operator::CON,
-                    4 => Operator::BICON,
-                    _ => panic!("Unsupported operator inside of set_notation"),
-                });
+        for op in [Operator::NOT, Operator::AND, Operator::OR, Operator::CON, Operator::BICON]{
+            for n in self.map[op].iter(){
+                if n == notation{
+                    return Some(op)
+                }
             }
         }
+
         None
     }
 
-    ///Returns the operator that appears at the beginning of the string.
-    pub fn get_prefix_operator(&self, expression: &str) -> Option<Operator>{
-        for (i, n) in self.map.iter().enumerate(){
-            if expression.starts_with(n){
-                return Some(match i{
-                    0 => Operator::NOT,
-                    1 => Operator::AND,
-                    2 => Operator::OR,
-                    3 => Operator::CON,
-                    4 => Operator::BICON,
-                    _ => panic!("Unsupported operator inside of set_notation"),
-                });
+    ///Returns all operators that have partial matches with the given string 
+    /// 
+    /// The map it returns has the key-value pair of (operator, # of partially-matching notations)
+    pub fn get_potential_operators(&self, prefix: &str) -> HashMap<Operator, usize>{
+        let mut counts = HashMap::new();
+        for op in [Operator::NOT, Operator::AND, Operator::OR, Operator::CON, Operator::BICON]{
+            for n in self.map[op].iter(){
+                if n.starts_with(prefix){
+                    *counts.entry(op).or_insert(0) += 1;
+                }
             }
         }
-        None
-    }
 
-    /// Sets the notation of an operator and returns Ok(()) if all goes well.
-    /// 
-    /// If there's a conflict with the new notation and a pre-existing notation,
-    /// returns the operator there's a conflict with. A conflict occurs when
-    /// one notation is the prefix to another notation.
-    /// 
-    /// ```
-    /// use clawgic::prelude::*;
-    /// let mut notation = OperatorNotation::ascii(); // ~ & v -> <->
-    /// //Technically conflicts with AND, but that's fine since it's being replaced anyway.
-    /// assert_eq!(notation.set_notation(Operator::AND, "&&".to_string()), Ok(()));
-    /// //Conflicts with NOT, so it's not allowed.
-    /// assert_eq!(notation.set_notation(Operator::CON, "~>".to_string()), Err(Operator::NOT));
-    /// ```
-    pub fn set_notation(&mut self, op: Operator, notation: String) -> Result<(), Operator>{
-        for (i, n) in self.map.iter().enumerate(){
-            if i == op as usize{ continue; }
-            if notation.starts_with(n) || n.starts_with(&notation){
-                return Err(match i{
-                    0 => Operator::NOT,
-                    1 => Operator::AND,
-                    2 => Operator::OR,
-                    3 => Operator::CON,
-                    4 => Operator::BICON,
-                    _ => panic!("Unsupported operator inside of set_notation"),
-                });
-            }
-        }
-        
-        self.map[op as usize] = notation;
-        Ok(())
+        counts
     }
 }
-
 
 impl Default for OperatorNotation{
     /// Constructs the default `OperatorNotation`:
@@ -215,13 +207,13 @@ impl Default for OperatorNotation{
     /// * conditional ➞
     /// * biconditional ⟷
     fn default() -> Self {
-        Self { map: [
-            "¬".to_string(),
-            "&".to_string(),
-            "∨".to_string(),
-            "➞".to_string(),
-            "⟷".to_string(),
-            ]
+        Self { map: NotationMap::new([
+            (Operator::NOT, ("¬".to_string(), vec!["~".to_string(), "!".to_string()])),
+            (Operator::AND, ("&".to_string(), vec!["^".to_string(), "∧".to_string(), "*".to_string(), "⋅".to_string()])),
+            (Operator::OR, ("∨".to_string(), vec!["v".to_string(), "|".to_string(), "+".to_string()])),
+            (Operator::CON, ("➞".to_string(), vec!["->".to_string(), ">".to_string(), "-->".to_string()])),
+            (Operator::BICON, ("⟷".to_string(), vec!["<->".to_string(), "<>".to_string(), "<-->".to_string()])),
+            ].into_iter().collect())
         }
     }
 }
