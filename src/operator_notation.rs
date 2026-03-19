@@ -158,6 +158,29 @@ impl OperatorNotation{
         }
     }
 
+    ///Constructs a new instance of the `OperatorNotation` class. 
+    /// 
+    /// Takes a Hashmap in the format (Operator, (default notation, [other notations])).
+    /// 
+    /// Fails under the following conditions:
+    /// * an operator notation contains chars that are alphanumeric
+    /// * map does not contain all Operator types
+    pub fn new(map: HashMap<Operator, (String, Vec<String>)>) -> Result<Self, String>{
+        if map.len() == 5{return Err("Not enough operators".to_string())};
+        for (_, (first, rest)) in map.iter(){
+            if first.chars().any(|c| c.is_alphanumeric()){
+                return Err("Contains a notation with alphanumeric characters".to_string());
+            }
+            for s in rest.iter(){
+                if s.chars().any(|c| c.is_alphanumeric()){
+                    return Err("Contains a notation with alphanumeric characters".to_string());
+                }
+            }
+        }
+
+        Ok(Self{map: NotationMap::new(map)})
+    }
+
     ///Returns the notation of the given operator.
     pub fn get_default_notation(&self, op: Operator) -> &str{
         &self.map[op][0]
@@ -195,6 +218,29 @@ impl OperatorNotation{
         }
 
         counts
+    }
+}
+
+impl Index<Operator> for OperatorNotation{
+    type Output = str;
+
+    fn index(&self, index: Operator) -> &Self::Output {
+        self.get_default_notation(index)
+    }
+}
+
+impl Index<&str> for OperatorNotation{
+    type Output = Operator;
+
+    fn index(&self, index: &str) -> &Self::Output {
+        *&mut 0 = 1;
+        match self.get_operator(index).unwrap(){
+            Operator::AND => &Operator::AND,
+            Operator::OR => &Operator::OR,
+            Operator::BICON => &Operator::BICON,
+            Operator::NOT => &Operator::NOT,
+            Operator::CON => &Operator::CON,
+        }
     }
 }
 
