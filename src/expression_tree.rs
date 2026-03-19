@@ -47,7 +47,7 @@ impl ExpressionTree{
 
     /// Constructs a new expression tree given a string representation of an infix logical expression.
     pub fn new(expression: &str) -> Result<Self, ClawgicError>{
-        let shells = &mut Self::shunting_yard(Self::tokenize_expression(expression)?)?;
+        let shells = &mut Self::shunting_yard(Self::tokenize_expression(expression, &OperatorNotation::default())?)?;
         let root = Self::construct_tree(shells)?;
         let vars = Self::create_uni(&root, Universe::new());
         if !shells.is_empty(){
@@ -77,7 +77,7 @@ impl ExpressionTree{
     }
 
     /// Tokenizes a string representation of an infix logical expression and produces a Vec of `Shell`'s
-    fn tokenize_expression(expression: &str) -> Result<Vec<Shell>, ClawgicError>{
+    fn tokenize_expression(expression: &str, notation: &OperatorNotation) -> Result<Vec<Shell>, ClawgicError>{
         //using chars enforces exactly one pass.
         let mut chars = expression.chars().skip_while(|c| c.is_whitespace());
         let mut result = Vec::new();
@@ -214,7 +214,7 @@ impl ExpressionTree{
     /// # Shunting yard algorithm.
     /// 
     /// Takes a tokenized version of an infix logical expression and converts to postfix.
-    fn shunting_yard(mut expression: Vec<Shell>) -> Result<Vec<Shell>, ClawgicError>{
+    fn shunting_yard(expression: Vec<Shell>) -> Result<Vec<Shell>, ClawgicError>{
         let mut shells = Vec::<Shell>::new();
         let mut operators = Vec::<Shell>::new();
 
@@ -527,9 +527,9 @@ impl ExpressionTree{
                 let mut op = node.print(notation);
                 if denied.is_denied(){
                     //TODO!: make this less ugly
-                    infix.push_str(&notation.get_notation(Operator::NOT).repeat(denied.count() as usize));
+                    infix.push_str(&notation[Operator::NOT].repeat(denied.count() as usize));
                     
-                    op = op.chars().skip(notation.get_notation(Operator::NOT).chars().count() * denied.count() as usize).collect();
+                    op = op.chars().skip(notation[Operator::NOT].chars().count() * denied.count() as usize).collect();
                 }
                 infix.push('(');
                 Self::infix_rec(left, infix, notation);

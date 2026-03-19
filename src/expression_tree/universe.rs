@@ -115,7 +115,7 @@ impl Universe{
     ///removes the Sentences from the universe.
     pub fn remove_sentences<It: Iterator<Item = Sentence>>(&mut self, sentences: It){
         for sen in sentences{
-            self.predicates.get_mut(sen.predicate()).is_some_and(|m| m.remove(&sen).is_some());
+            let _ = self.predicates.get_mut(sen.predicate()).is_some_and(|m| m.remove(&sen).is_some());
         }
     }
 
@@ -163,7 +163,7 @@ impl Universe{
     ///If there are conflicts, defaults to other's values.
     pub fn add_universe(&mut self, other: Universe){
         let Self{variables: other_variables, predicates: other_predicates} = other;
-        self.insert_variables(other_variables.into_iter());
+        let _ = self.insert_variables(other_variables.into_iter());
         self.insert_predicates(other_predicates.keys().cloned());
         other_predicates.into_iter().for_each(|(_, m)| 
             m.into_iter().for_each(|(s, b)| {self.insert_sentence(s, b);})
