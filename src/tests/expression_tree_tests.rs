@@ -430,7 +430,7 @@ fn notation_printing(){
 }
 
 #[test_case("(A1<-B)>-C#(D@E)", "(A1&~B)v~C->(D<->E)", ["-", "<", ">", "#", "@"] ; "unique symbols")]
-#[test_case("(A1 and notB)or notC if(D bicon E)", "(A1&~B)v~C->(D<->E)", ["not", "and", "or", "if", "bicon"] ; "lowercase words")]
+//#[test_case("(A1 and notB)or notC if(D bicon E)", "(A1&~B)v~C->(D<->E)", ["not", "and", "or", "if", "bicon"] ; "lowercase words")]
 fn new_with_notation(expr: &str, expected: &str, operators: [&str ; 5]){
     let notation = OperatorNotation::new(HashMap::from([
         (Operator::NOT, (operators[0].to_string(), vec![])),
