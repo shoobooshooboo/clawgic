@@ -5,7 +5,7 @@ use super::node::operator::Operator;
 /// This is a data type made for the shunting yard algorithm. 
 /// 
 /// It represents the tokens of an infix logical expression. 
-pub enum Shell{
+pub enum Token{
     /// Binary logical operator.
     Operator(Negation, Operator),
     /// Boolean Variable.
@@ -20,7 +20,7 @@ pub enum Shell{
     Tilde(Negation),
 }
 
-impl Shell{
+impl Token{
     /// Whether the `Shell` is an `Operator`.
     pub fn is_operator(&self) -> bool{
         match self{
