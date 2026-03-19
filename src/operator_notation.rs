@@ -225,7 +225,7 @@ impl Index<Operator> for OperatorNotation{
     type Output = str;
 
     fn index(&self, index: Operator) -> &Self::Output {
-        self.get_default_notation(index)
+        &self.get_default_notation(index)
     }
 }
 

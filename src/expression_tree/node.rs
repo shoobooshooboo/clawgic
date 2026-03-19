@@ -392,16 +392,16 @@ impl Node{
             Self::Operator { neg: denied, op, .. } => {
                 let mut s = String::new();
                 if denied.is_denied(){
-                    s.push_str(notation.get_notation(Operator::NOT));
+                    s.push_str(&notation[Operator::NOT]);
                 }
-                s.push_str(notation.get_notation(*op));
+                s.push_str(&notation[*op]);
 
                 s
             }
             Self::Sentence { neg: denied, sen, .. } => {
                 let mut s = String::new();
                 if denied.is_denied(){
-                    s.push_str(notation.get_notation(Operator::NOT));
+                    s.push_str(&notation[Operator::NOT]);
                 }
                 s.push_str(sen.name());
                 s
@@ -409,7 +409,7 @@ impl Node{
             Self::Constant(denied, b) => {
                 let mut s = String::new();
                 for _ in 0..denied.count(){
-                    s.push_str(notation.get_notation(Operator::NOT))
+                    s.push_str(&notation[Operator::NOT])
                 }
                 s + 
                 if *b{
