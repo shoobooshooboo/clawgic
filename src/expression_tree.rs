@@ -680,7 +680,7 @@ impl ExpressionTree{
     }
 
     ///returns a set of variables that satisfies the expression if one exists. Very expensive function.
-    pub fn satisfy_one(&self) -> Option<HashMap<String, bool>>{
+    pub fn satisfy_one(&self) -> Option<HashMap<Sentence, bool>>{
         todo!();
         // let mut vars: HashMap<String, bool> = self.uni.iter().map(|(n, _)| (n.to_owned(), false)).collect();
 
@@ -703,12 +703,12 @@ impl ExpressionTree{
     }
 
     ///returns a set of variables that satisfies the expression and the auxiliary expression if one exists. Very expensive function.
-    pub fn satisfy_one_with(&self, aux: &ExpressionTree) -> Option<HashMap<String, bool>>{
+    pub fn satisfy_one_with(&self, aux: &ExpressionTree) -> Option<HashMap<Sentence, bool>>{
         Self::satisfy_one(&(self.clone() & aux.clone()))
     }
 
     ///returns a vector of all sets of variables that satisfy the expression. Extremely expensive function.
-    pub fn satisfy_all(&self) -> Vec<HashMap<String, bool>>{
+    pub fn satisfy_all(&self) -> Vec<HashMap<Sentence, bool>>{
         todo!()
         // let mut vars: HashMap<String, bool> = self.uni.iter().map(|(n, _)| (n.to_owned(), false)).collect();
         // let mut maps = Vec::new();
@@ -732,7 +732,7 @@ impl ExpressionTree{
     }
 
     ///returns a vector of all sets of variables that satisfy the expression and the auxiliary expression. Extremely expensive function.
-    pub fn satisfy_all_with(&self, aux: &ExpressionTree) -> Vec<HashMap<String, bool>>{
+    pub fn satisfy_all_with(&self, aux: &ExpressionTree) -> Vec<HashMap<Sentence, bool>>{
         Self::satisfy_all(&(self.clone() & aux.clone()))
     }
 

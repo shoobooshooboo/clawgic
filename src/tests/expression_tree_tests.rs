@@ -2,7 +2,11 @@
 use std::collections::HashMap;
 
 use test_case::test_case;
-use crate::prelude::*;
+use crate::{expression_tree::universe::Universe, prelude::*};
+
+fn sen0(name: &str) -> Sentence{
+    Sentence::new(&Predicate::new(name, 0).unwrap(), &vec![]).unwrap()
+}
 
 #[test_case("A" ; "single variable")]
 #[test_case("A&B" ; "one connective")]
@@ -37,9 +41,9 @@ fn new_err(expression: &str, err: ClawgicError){
 fn set_variable(){
     let mut t = ExpressionTree::new("A&B->A").unwrap();
     assert!(t.evaluate().is_err());
-    t.set_tval("A", true);
+    t.set_tval(&sen0("A"), true);
     assert!(t.evaluate().is_err());
-    t.set_tval("B", true);
+    t.set_tval(&sen0("B"), true);
     assert!(t.evaluate().is_ok());
 }
 
@@ -50,17 +54,17 @@ fn set_variable(){
 #[test_case("A<->B", true, false, true, false ; "biconditional")]
 fn evaluate(expression: &str, ex1: bool, ex2: bool, ex3: bool, ex4: bool){
     let mut t = ExpressionTree::new(expression).unwrap();
-    t.set_tval("A", true);
-    t.set_tval("B", true);
+    t.set_tval(&sen0("A"), true);
+    t.set_tval(&sen0("B"), true);
     assert_eq!(t.evaluate().unwrap(), ex1, "failed true true");
 
-    t.set_tval("B", false);
+    t.set_tval(&sen0("B"), false);
     assert_eq!(t.evaluate().unwrap(), ex2, "failed true false");
 
-    t.set_tval("A", false);
+    t.set_tval(&sen0("A"), false);
     assert_eq!(t.evaluate().unwrap(), ex3, "failed false false");
 
-    t.set_tval("B", true);
+    t.set_tval(&sen0("B"), true);
     assert_eq!(t.evaluate().unwrap(), ex4, "failed false true");
 }
 
@@ -69,22 +73,22 @@ fn evaluate(expression: &str, ex1: bool, ex2: bool, ex3: bool, ex4: bool){
 #[test_case("AvB", true, true, false, true ; "disjunction")]
 #[test_case("A->B", true, false, true, true ; "conditional")]
 #[test_case("A<->B", true, false, true, false ; "biconditional")]
-fn evaluate_with_vars(expression: &str, ex1: bool, ex2: bool, ex3: bool, ex4: bool){
+fn evaluate_with_uni(expression: &str, ex1: bool, ex2: bool, ex3: bool, ex4: bool){
     let t = ExpressionTree::new(expression).unwrap();
-    let mut v = HashMap::new();
-    v.insert("A".to_string(), true);
-    v.insert("B".to_string(), true);
+    let mut v = Universe::new();
+    v.insert_sentence(sen0("A"), true);
+    v.insert_sentence(sen0("B"), true);
     println!("{:#?}", v);
-    assert_eq!(t.evaluate_with_vars(&v).unwrap(), ex1, "failed true true");
+    assert_eq!(t.evaluate_with_uni(&v).unwrap(), ex1, "failed true true");
 
-    v.insert("B".to_string(), false);
-    assert_eq!(t.evaluate_with_vars(&v).unwrap(), ex2, "failed true false");
+    v.insert_sentence(sen0("B"), false);
+    assert_eq!(t.evaluate_with_uni(&v).unwrap(), ex2, "failed true false");
 
-    v.insert("A".to_string(), false);
-    assert_eq!(t.evaluate_with_vars(&v).unwrap(), ex3, "failed false false");
+    v.insert_sentence(sen0("A"), false);
+    assert_eq!(t.evaluate_with_uni(&v).unwrap(), ex3, "failed false false");
 
-    v.insert("B".to_string(), true);
-    assert_eq!(t.evaluate_with_vars(&v).unwrap(), ex4, "failed false true");
+    v.insert_sentence(sen0("B"), true);
+    assert_eq!(t.evaluate_with_uni(&v).unwrap(), ex4, "failed false true");
 }
 
 #[test_case("A&B", "&AB" ; "One connective")]
@@ -201,15 +205,15 @@ fn syn_eq(expr1: &str, expr2: &str, expected: bool){
 }
 
 #[test_case("A&B", Ok(true) ; "over-populating")]
-#[test_case("A&B->C", Ok(true) ; "correct number of vars")]
+#[test_case("A&B->C", Ok(true) ; "correct number of uni")]
 #[test_case("A&B->C&D", Err(ClawgicError::UninitializedSentence("D".to_string())) ; "under-populating")]
 fn set_variables(expr: &str, expected: Result<bool, ClawgicError>){
     let mut t = ExpressionTree::new(expr).unwrap();
-    let mut vars = HashMap::new();
-    vars.insert("A".to_string(), true);
-    vars.insert("B".to_string(), true);
-    vars.insert("C".to_string(), true);
-    t.set_variables(&vars);
+    let mut uni = HashMap::new();
+    uni.insert(sen0("A"), true);
+    uni.insert(sen0("B"), true);
+    uni.insert(sen0("C"), true);
+    t.set_tvals(&uni);
 
     assert_eq!(t.evaluate(), expected);
 }
@@ -235,10 +239,13 @@ fn is_satisfiable(expr: &str, expected: bool){
 #[test_case("A&~A", false ; "inconsistency")]
 #[test_case("A", true ; "contingency")]
 fn satisfy_one(expr: &str, expected: bool){
-    let tree = ExpressionTree::new(expr).unwrap();
+    let mut tree = ExpressionTree::new(expr).unwrap();
 
     match tree.satisfy_one(){
-        Some(v) => assert!(tree.evaluate_with_vars(&v).unwrap() && expected),
+        Some(v) => {
+            tree.set_tvals(&v);
+            assert!(tree.evaluate().unwrap() && expected)
+        },
         None => assert!(!expected),
     };
 }
@@ -247,12 +254,13 @@ fn satisfy_one(expr: &str, expected: bool){
 #[test_case("A&~A", 0 ; "inconsistency")]
 #[test_case("A", 1 ; "contingency")]
 fn satisfy_all(expr: &str, count: usize){
-    let tree = ExpressionTree::new(expr).unwrap();
+    let mut tree = ExpressionTree::new(expr).unwrap();
     let var_maps = tree.satisfy_all();
     assert_eq!(var_maps.len(), count);
     
-    for vars in var_maps{
-        if !tree.evaluate_with_vars(&vars).unwrap(){
+    for uni in var_maps{
+        tree.set_tvals(&uni);
+        if !tree.evaluate().unwrap(){
             assert!(false);
         }
     }
@@ -295,33 +303,33 @@ fn is_contingency(expr: &str, expected: bool){
     assert_eq!(tree.is_contingency(), expected);
 }
 
-#[test_case("A&B", "A", "CvD", "(CvD)&B" ; "normal")]
-#[test_case("A&B", "C", "CvD", "A&B" ; "no variable to replace")]
-#[test_case("A", "A", "CvD", "CvD" ; "single variable")]
-#[test_case("~A&A", "A", "CvD", "~(CvD)&(CvD)" ; "denied")]
-fn replace_variable(expr1: &str, var: &str, subexpr: &str, expected: &str){
+#[test_case("A&B", sen0("A"), "CvD", "(CvD)&B" ; "normal")]
+#[test_case("A&B", sen0("C"), "CvD", "A&B" ; "no variable to replace")]
+#[test_case("A", sen0("A"), "CvD", "CvD" ; "single variable")]
+#[test_case("~A&A", sen0("A"), "CvD", "~(CvD)&(CvD)" ; "denied")]
+fn replace_variable(expr1: &str, var: Sentence, subexpr: &str, expected: &str){
     let mut t1 = ExpressionTree::new(expr1).unwrap();
     let st = ExpressionTree::new(subexpr).unwrap();
     let res = ExpressionTree::new(expected).unwrap();
 
-    t1.replace_sentence(var, &st);
+    t1.replace_sentence(&var, &st);
     assert!(t1.lit_eq(&res));
 }
 
 #[test]
 fn replace_variables(){
     let mut tree = ExpressionTree::new("~A&B->Cv~D").unwrap();
-    let mut vars = HashMap::new();
+    let mut uni = HashMap::new();
     let a_subtree = ExpressionTree::new("BvD").unwrap();
-    vars.insert("A".to_string(), &a_subtree);
+    uni.insert(sen0("A"), &a_subtree);
     let b_subtree = ExpressionTree::new("E->F").unwrap();
-    vars.insert("B".to_string(), &b_subtree);
+    uni.insert(sen0("B"), &b_subtree);
     let e_subtree = ExpressionTree::new("H").unwrap();
-    vars.insert("E".to_string(), &e_subtree);
+    uni.insert(sen0("E"), &e_subtree);
 
     let expected = ExpressionTree::new("~(BvD)&(E->F)->Cv~D").unwrap();
 
-    tree.replace_sentences(&vars);
+    tree.replace_sentences(&uni);
 
     assert_eq!(tree.infix(None), expected.infix(None));
 }
@@ -329,7 +337,7 @@ fn replace_variables(){
 #[test]
 fn evaluate_after_deny(){
     let mut tree = ExpressionTree::new("A").unwrap();
-    tree.set_tval("A", true);
+    tree.set_tval(&sen0("A"), true);
     assert!(tree.evaluate().unwrap());
     tree.deny();
     assert!(!tree.evaluate().unwrap());
@@ -409,25 +417,28 @@ fn is_satisfiable_with(expr: &str, aux: &str, expected: bool){
 #[test]
 fn notation_printing(){
     let tree = ExpressionTree::new("(A1&~B)v~C->(D<->E)").unwrap();
-    let mut notation = OperatorNotation::bits_ascii();
+    let notation = OperatorNotation::bits_ascii();
     assert_eq!(tree.infix(Some(&notation)), "((A1*~B)+~C)->(D<->E)", "1");
-    let _ = notation.set_notation(Operator::AND, "&&".to_string());
-    let _ = notation.set_notation(Operator::NOT, "?".to_string());
-    let _ = notation.set_notation(Operator::OR, "||".to_string());
-    let _ = notation.set_notation(Operator::CON, "0-0".to_string());
-    let _ = notation.set_notation(Operator::BICON, ":p".to_string());
+    let notation = OperatorNotation::new(HashMap::from([
+        (Operator::AND, ("&&".to_string(), vec![])),
+        (Operator::NOT, ("?".to_string(), vec![])),
+        (Operator::OR, ("||".to_string(), vec![])),
+        (Operator::CON, (".-.".to_string(), vec![])),
+        (Operator::BICON, (":p".to_string(), vec![])),
+    ])).unwrap();
     assert_eq!(tree.infix(Some(&notation)), "((A1&&?B)||?C)0-0(D:pE)", "2");
 }
 
 #[test_case("(A1<-B)>-C#(D@E)", "(A1&~B)v~C->(D<->E)", ["-", "<", ">", "#", "@"] ; "unique symbols")]
 #[test_case("(A1 and notB)or notC if(D bicon E)", "(A1&~B)v~C->(D<->E)", ["not", "and", "or", "if", "bicon"] ; "lowercase words")]
 fn new_with_notation(expr: &str, expected: &str, operators: [&str ; 5]){
-    let mut notation = OperatorNotation::default();
-    let _ = notation.set_notation(Operator::NOT, operators[0].to_string());
-    let _ = notation.set_notation(Operator::AND, operators[1].to_string());
-    let _ = notation.set_notation(Operator::OR, operators[2].to_string());
-    let _ = notation.set_notation(Operator::CON, operators[3].to_string());
-    let _ = notation.set_notation(Operator::BICON, operators[4].to_string());
+    let notation = OperatorNotation::new(HashMap::from([
+        (Operator::NOT, (operators[0].to_string(), vec![])),
+        (Operator::AND, (operators[1].to_string(), vec![])),
+        (Operator::OR, (operators[2].to_string(), vec![])),
+        (Operator::CON, (operators[3].to_string(), vec![])),
+        (Operator::BICON, (operators[4].to_string(), vec![])),
+    ])).unwrap();
     let t1 = ExpressionTree::new_with_notation(expr, &notation).unwrap();
     let t2 = ExpressionTree::new(expected).unwrap();
 
