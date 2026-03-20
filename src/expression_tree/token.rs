@@ -5,6 +5,7 @@ use super::node::operator::Operator;
 /// This is a data type made for the shunting yard algorithm. 
 /// 
 /// It represents the tokens of an infix logical expression. 
+#[derive(Debug)]
 pub enum Token{
     /// Binary logical operator.
     Operator(Negation, Operator),
@@ -13,9 +14,9 @@ pub enum Token{
     /// Boolean constant. True or False.
     Constant(Negation, bool),
     /// Open Parentheses.
-    OpenParentheses,
+    OpenParenthesis,
     ///Closed Parantheses.
-    ClosedParentheses,
+    ClosedParenthesis,
     /// Boolean denial operator.
     Tilde(Negation),
 }
@@ -48,7 +49,7 @@ impl Token{
     /// Whether the `Shell` is an `OpenParentheses`.
     pub fn is_open_parentheses(&self) -> bool{
         match self{
-            Self::OpenParentheses => true,
+            Self::OpenParenthesis => true,
             _ => false,
         }
     }
@@ -56,7 +57,7 @@ impl Token{
     /// Whether the `Shell` is a `ClosedParentheses`.
     pub fn is_closed_parentheses(&self) -> bool{
         match self{
-            Self::ClosedParentheses => true,
+            Self::ClosedParenthesis => true,
             _ => false,
         }
     }

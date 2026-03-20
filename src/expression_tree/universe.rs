@@ -156,7 +156,7 @@ impl Universe{
 
     ///Gets a mutable reference to the truth value of the given sentence.
     pub fn get_tval_mut(&mut self, sentence: &Sentence) -> Option<&mut bool>{
-        self.predicates.get_mut(sentence.predicate()).and_then(|map| map.get_mut(sentence))
+        self.predicates.get_mut(sentence.predicate()).and_then(|map| Some(map.entry(sentence.clone()).or_insert(false)))
     }
 
     ///Adds all the contents of another universe to this one. 

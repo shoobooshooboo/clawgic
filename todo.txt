@@ -24,6 +24,7 @@ current goals v0.8.0 (predicate logic update titled: "the big one"):
 ##TEST##
     - figure out how to reimplement satisfiability stuff
 ##TEST##
+    - finish OperatorNotation constructor
     - update README.md
 
 design considerations:

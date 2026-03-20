@@ -15,7 +15,8 @@ mod tests;
 pub enum ClawgicError{
     UninitializedSentence(String),
     InvalidExpression,
-    UnknownSymbol,
+    EmptyExpression,
+    UnknownSymbol(String),
     InvalidParentheses,
     TooManyOperators,
     NotEnoughOperators,
@@ -31,7 +32,7 @@ impl std::fmt::Display for ClawgicError{
         write!(f, "{}", match self{
             Self::UninitializedSentence(s) => format!("Uninitialized variable \"{s}\""),
             Self::InvalidExpression => "Invalid expression".to_string(),
-            Self::UnknownSymbol => "Unknown symbol".to_string(),
+            Self::UnknownSymbol(s) => format!("Unknown symbol \"{s}\""),
             Self::InvalidParentheses => "Invalid parenthesis".to_string(),
             Self::TooManyOperators => "Too many operators".to_string(),
             Self::NotEnoughOperators => "Not enough operators".to_string(),
@@ -40,6 +41,7 @@ impl std::fmt::Display for ClawgicError{
             Self::AmbiguousExpression => "Ambiguous expression".to_string(),
             Self::TooFewVariables => "Not enough variables for the given predicate".to_string(),
             Self::TooManyVariables => "Too many operators for the given predicate".to_string(),
+            Self::EmptyExpression => "Expression is empty".to_string(),
         })
     }
 }

@@ -26,11 +26,11 @@ fn new_ok(expression: &str){
 #[test_case("A&B)", ClawgicError::InvalidParentheses ; "missing open parentheses")]
 #[test_case("A&b", ClawgicError::InvalidPredicateName("b".to_string()) ; "lowercase variable")]
 #[test_case("(A&B)&", ClawgicError::TooManyOperators ; "Too many operators")]
-#[test_case("AB", ClawgicError::NotEnoughOperators ; "Not enough operators")]
+#[test_case("(A)B", ClawgicError::NotEnoughOperators ; "Not enough operators")]
 #[test_case("A&~", ClawgicError::InvalidExpression ; "tilde nothing")]
-#[test_case("A&<-", ClawgicError::UnknownSymbol ; "bad double arrow")]
-#[test_case("A&-", ClawgicError::UnknownSymbol ; "bad single arrow")]
-#[test_case("A&?", ClawgicError::UnknownSymbol ; "random symbol")]
+#[test_case("A&<-", ClawgicError::UnknownSymbol("<-".to_string()); "bad double arrow")]
+#[test_case("A&-", ClawgicError::UnknownSymbol("-".to_string()); "bad single arrow")]
+#[test_case("A&?", ClawgicError::UnknownSymbol("?".to_string()); "random symbol")]
 #[test_case("A&B&C", ClawgicError::AmbiguousExpression ; "ambiguous conjunctions")]
 fn new_err(expression: &str, err: ClawgicError){
     let t = ExpressionTree::new(expression);
@@ -424,9 +424,9 @@ fn notation_printing(){
         (Operator::NOT, ("?".to_string(), vec![])),
         (Operator::OR, ("||".to_string(), vec![])),
         (Operator::CON, (".-.".to_string(), vec![])),
-        (Operator::BICON, (":p".to_string(), vec![])),
+        (Operator::BICON, (":".to_string(), vec![])),
     ])).unwrap();
-    assert_eq!(tree.infix(Some(&notation)), "((A1&&?B)||?C)0-0(D:pE)", "2");
+    assert_eq!(tree.infix(Some(&notation)), "((A1&&?B)||?C).-.(D:E)", "2");
 }
 
 #[test_case("(A1<-B)>-C#(D@E)", "(A1&~B)v~C->(D<->E)", ["-", "<", ">", "#", "@"] ; "unique symbols")]

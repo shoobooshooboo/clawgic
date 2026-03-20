@@ -1,9 +1,9 @@
 pub mod node;
 pub mod expression_var;
 pub mod universe;
-mod shell;
+mod token;
 
-use shell::Token;
+use token::Token;
 use node::Node;
 use node::operator::Operator;
 use std::cell::Cell;
@@ -79,23 +79,29 @@ impl ExpressionTree{
     /// Tokenizes a string representation of an infix logical expression and produces a Vec of `Shell`'s
     fn tokenize_expression(expression: &str, notation: &OperatorNotation) -> Result<Vec<Token>, ClawgicError>{
         //using chars enforces exactly one pass.
-        let mut chars = expression.chars().skip_while(|c| c.is_whitespace());
+        let mut chars = expression.chars().filter(|c| !c.is_whitespace());
         let mut result = Vec::new();
         let mut c = match chars.next(){
             Some(next_char) => next_char,
-            None => return Ok(result)
+            None => return Err(ClawgicError::EmptyExpression)
         };
 
-        while chars.clone().next().is_some(){
+        let mut more_to_parse = true;
+
+        while more_to_parse{
             //handle predicates
-            if c.is_uppercase(){
+            if c.is_alphanumeric() && c != 'v'{
                 let mut substring = String::new();
                 while c.is_uppercase(){
                     substring.push(c);
                     c = match chars.next(){
                         Some(next_char) => next_char,
-                        None => break,
+                        None => {more_to_parse = false; break;},
                     };
+                }
+
+                if substring.is_empty(){
+                    return Err(ClawgicError::InvalidPredicateName(c.to_string()));
                 }
 
                 if substring == "TRUE"{
@@ -109,7 +115,7 @@ impl ExpressionTree{
                         substring.push(c);
                         c = match chars.next(){
                             Some(next_char) => next_char,
-                            None => break,
+                            None => {more_to_parse = false; break;},
                         };
                     }
                     let pred_name = substring.clone();
@@ -117,7 +123,7 @@ impl ExpressionTree{
                     if c == '('{
                         c = match chars.next(){
                             Some(next_char) => next_char,
-                            None => break,
+                            None => return Err(ClawgicError::InvalidExpression),
                         };
 
                         while c != ')'{
@@ -126,7 +132,7 @@ impl ExpressionTree{
                                 substring.push(c);
                                 c = match chars.next(){
                                     Some(next_char) => next_char,
-                                    None => break,
+                                    None => {more_to_parse = false; break;},
                                 };
                             }
 
@@ -137,16 +143,11 @@ impl ExpressionTree{
                             variables.push(substring.clone());
                             c = match chars.next(){
                                 Some(next_char) => next_char,
-                                None => break,
+                                None => {more_to_parse = false; break;},
                             };
                         }
-
-                        result.push(Token::Sentence(Negation::default(), Predicate::new(&pred_name, variables.len()).unwrap(), variables));
-                        c = match chars.next(){
-                            Some(next_char) => next_char,
-                            None => break,
-                        };
                     }
+                    result.push(Token::Sentence(Negation::default(), Predicate::new(&pred_name, variables.len()).unwrap(), variables));
                 }
             } else if !notation.get_potential_operators(&c.to_string()).is_empty() {
                 let mut substring = String::new();
@@ -155,39 +156,52 @@ impl ExpressionTree{
                 while !notation.get_potential_operators(&substring).is_empty(){
                     c = match chars.next(){
                         Some(next_char) => next_char,
-                        None => {substring.push(':'); break;},
+                        None => {substring.push(':'); more_to_parse = false; break;},
                     };
                     substring.push(c);
                 }
-                substring.pop().unwrap();
+                substring.pop();
                 op = match notation.get_operator(&substring){
                     Some(o) => o,
-                    None => return Err(ClawgicError::UnknownSymbol),
+                    None => return Err(ClawgicError::UnknownSymbol(substring)),
                 };
                 if op.is_not(){
                     result.push(Token::Tilde(Negation::new(1)));
                 }else{
                     result.push(Token::Operator(Negation::default(), op));
                 }
+            }else if c == '('{
+                result.push(Token::OpenParenthesis);
+
+                c = match chars.next(){
+                    Some(next_char) => next_char,
+                    None => break,
+                };
+            }else if c == ')'{
+                result.push(Token::ClosedParenthesis);
+
+                c = match chars.next(){
+                    Some(next_char) => next_char,
+                    None => break,
+                };
             }else{
-                return Err(ClawgicError::UnknownSymbol);
+                return Err(ClawgicError::UnknownSymbol(c.to_string()));
             }
         }
 
         Ok(result)
     }
 
-    /// # Shunting yard algorithm.
-    /// 
     /// Takes a tokenized version of an infix logical expression and converts to postfix.
     fn shunting_yard(expression: Vec<Token>) -> Result<Vec<Token>, ClawgicError>{
-        let mut postfix = Vec::<Token>::new();
-        let mut operators = Vec::<Token>::new();
+
+        let mut postfix = Vec::new();
+        let mut operators = Vec::new();
 
         for token in expression{
             match token{
                 Token::Tilde(negation) => operators.push(Token::Tilde(negation)),
-                Token::OpenParentheses => operators.push(Token::OpenParentheses),
+                Token::OpenParenthesis => operators.push(Token::OpenParenthesis),
                 Token::Constant(mut negation, value) => {
                     while operators.last().is_some_and(|op| op.is_tilde()){
                         negation.negate();
@@ -196,11 +210,9 @@ impl ExpressionTree{
                     postfix.push(Token::Constant(negation, value));
                 },
                 Token::Sentence(mut negation, predicate, vars) => {
-                    if operators.last().is_some_and(|op| op.is_tilde()){
-                        negation = match operators.pop().unwrap(){
-                            Token::Tilde(n) => n,
-                            _ => panic!(),
-                        };
+                    while operators.last().is_some_and(|op| op.is_tilde()){
+                        negation.negate();
+                        operators.pop();
                     }
                     postfix.push(Token::Sentence(negation, predicate, vars));
                 },
@@ -221,7 +233,7 @@ impl ExpressionTree{
                     }
                     operators.push(Token::Operator(negation, op));
                 },
-                Token::ClosedParentheses => {
+                Token::ClosedParenthesis => {
                     while operators.last().is_some_and(|op| !op.is_open_parentheses()){
                         postfix.push(operators.pop().unwrap());
                     }
@@ -254,7 +266,7 @@ impl ExpressionTree{
 
                                 postfix.push(Token::Sentence(negation, pred, vars))
                             },
-                            Token::ClosedParentheses | Token::OpenParentheses | Token::Tilde(_) => panic!("this should be impossible"),
+                            Token::ClosedParenthesis | Token::OpenParenthesis | Token::Tilde(_) => panic!("this should be impossible"),
 
                         }
                     }
@@ -281,7 +293,7 @@ impl ExpressionTree{
                     },
                     Token::Sentence(denied, predicate, vars) => Node::Sentence { neg: denied, sen: predicate.inst(&vars)?},
                     Token::Constant(neg, value) => Node::Constant(neg, value),
-                    Token::OpenParentheses | Token::ClosedParentheses => return Err(ClawgicError::InvalidParentheses),
+                    Token::OpenParenthesis | Token::ClosedParenthesis => return Err(ClawgicError::InvalidParentheses),
                     Token::Tilde(_) => return Err(ClawgicError::InvalidExpression),
                 }
             },
@@ -312,6 +324,7 @@ impl ExpressionTree{
     /// Sets the truth value of the given sentence.
     pub fn set_tval(&mut self, sentence: &Sentence, value: bool){
         if let Some(tval) = self.uni.get_tval_mut(sentence){
+            self.value.replace(None);
             *tval = value;
         }
     }

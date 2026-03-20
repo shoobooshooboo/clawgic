@@ -168,7 +168,7 @@ impl OperatorNotation{
     /// * map does not contain all Operator types
     /// * map has multiple of the same notation
     pub fn new(map: HashMap<Operator, (String, Vec<String>)>) -> Result<Self, String>{
-        if map.len() == 5{return Err("Not enough operators".to_string())};
+        if map.len() != 5{return Err("Not enough operators".to_string())};
         for (_, (first, rest)) in map.iter(){
             if first.chars().any(|c| c.is_alphanumeric()){
                 return Err("Contains a notation with alphanumeric characters".to_string());
@@ -212,8 +212,8 @@ impl OperatorNotation{
     pub fn get_potential_operators(&self, prefix: &str) -> HashMap<Operator, usize>{
         let mut counts = HashMap::new();
         for op in [Operator::NOT, Operator::AND, Operator::OR, Operator::CON, Operator::BICON]{
-            for n in self.map[op].iter(){
-                if n.starts_with(prefix){
+            for notation in self.map[op].iter(){
+                if notation.starts_with(prefix){
                     *counts.entry(op).or_insert(0) += 1;
                 }
             }
