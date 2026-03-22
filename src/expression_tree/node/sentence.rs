@@ -1,4 +1,6 @@
-use crate::{ClawgicError, utils};
+use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not, Shl, ShlAssign, Shr, ShrAssign};
+
+use crate::{ClawgicError, prelude::{ExpressionTree}, utils};
 
 /// Predicate from prediccate (first order) logic.
 /// Has a name and an arity (number of vars that it takes).
@@ -88,6 +90,15 @@ impl Sentence{
     pub fn vars(&self) -> &Vec<String>{
         &self.vars
     }
+
+    pub fn expr(&self) -> ExpressionTree{
+        let vars: String = format!("{:?}", self.vars).chars().filter(|c| *c != '[' && *c != ']' && *c != '"').collect();
+        if !vars.is_empty(){
+            ExpressionTree::new(&format!("{}({})", self.name(), vars)).unwrap()
+        }else{
+            ExpressionTree::new(&format!("{}", self.name())).unwrap()
+        }
+    }
 }
 
 impl ToString for Sentence{
@@ -103,5 +114,163 @@ impl ToString for Sentence{
         }
         s += ")";
         s
+    }
+}
+
+impl BitAnd<&Sentence> for &Sentence{
+    type Output = ExpressionTree;
+
+    fn bitand(self, rhs: &Sentence) -> Self::Output {
+        self.expr() & rhs.expr()
+    }
+}
+
+impl BitAnd<ExpressionTree> for &Sentence{
+    type Output = ExpressionTree;
+
+    fn bitand(self, rhs: ExpressionTree) -> Self::Output {
+        self.expr() & rhs
+    }
+}
+
+impl BitAnd<&Sentence> for ExpressionTree{
+    type Output = ExpressionTree;
+
+    fn bitand(self, rhs: &Sentence) -> Self::Output {
+        self & rhs.expr()
+    }
+}
+
+impl BitAndAssign<&Sentence> for ExpressionTree{
+    fn bitand_assign(&mut self, rhs: &Sentence) {
+        *self &= rhs.expr();
+    }
+}
+
+impl BitOr<&Sentence> for &Sentence{
+    type Output = ExpressionTree;
+
+    fn bitor(self, rhs: &Sentence) -> Self::Output {
+        self.expr() | rhs.expr()
+    }
+}
+
+impl BitOr<ExpressionTree> for &Sentence{
+    type Output = ExpressionTree;
+
+    fn bitor(self, rhs: ExpressionTree) -> Self::Output {
+        self.expr() | rhs
+    }
+}
+
+impl BitOr<&Sentence> for ExpressionTree{
+    type Output = ExpressionTree;
+
+    fn bitor(self, rhs: &Sentence) -> Self::Output {
+        self | rhs.expr()
+    }
+}
+
+impl BitOrAssign<&Sentence> for ExpressionTree{
+    fn bitor_assign(&mut self, rhs: &Sentence) {
+        *self |= rhs.expr();
+    }
+}
+
+impl BitXor<&Sentence> for &Sentence{
+    type Output = ExpressionTree;
+
+    fn bitxor(self, rhs: &Sentence) -> Self::Output {
+        self.expr() ^ rhs.expr()
+    }
+}
+
+impl BitXor<ExpressionTree> for &Sentence{
+    type Output = ExpressionTree;
+
+    fn bitxor(self, rhs: ExpressionTree) -> Self::Output {
+        self.expr() ^ rhs
+    }
+}
+
+impl BitXor<&Sentence> for ExpressionTree{
+    type Output = ExpressionTree;
+
+    fn bitxor(self, rhs: &Sentence) -> Self::Output {
+        self ^ rhs.expr()
+    }
+}
+
+impl BitXorAssign<&Sentence> for ExpressionTree{
+    fn bitxor_assign(&mut self, rhs: &Sentence) {
+        *self ^= rhs.expr();
+    }
+}
+
+impl Not for &Sentence{
+    type Output = ExpressionTree;
+
+    fn not(self) -> Self::Output {
+        !self.expr()
+    }
+}
+
+impl Shl<&Sentence> for &Sentence{
+    type Output = ExpressionTree;
+
+    fn shl(self, rhs: &Sentence) -> Self::Output {
+        self.expr() << rhs.expr()
+    }
+}
+
+impl Shl<ExpressionTree> for &Sentence{
+    type Output = ExpressionTree;
+
+    fn shl(self, rhs: ExpressionTree) -> Self::Output {
+        self.expr() << rhs
+    }
+}
+
+impl Shl<&Sentence> for ExpressionTree{
+    type Output = ExpressionTree;
+
+    fn shl(self, rhs: &Sentence) -> Self::Output {
+        self << rhs.expr()
+    }
+}
+
+impl ShlAssign<&Sentence> for ExpressionTree{
+    fn shl_assign(&mut self, rhs: &Sentence) {
+        *self <<= rhs.expr();
+    }
+}
+
+impl Shr<&Sentence> for &Sentence{
+    type Output = ExpressionTree;
+
+    fn shr(self, rhs: &Sentence) -> Self::Output {
+        self.expr() >> rhs.expr()
+    }
+}
+
+impl Shr<ExpressionTree> for &Sentence{
+    type Output = ExpressionTree;
+
+    fn shr(self, rhs: ExpressionTree) -> Self::Output {
+        self.expr() >> rhs
+    }
+}
+
+impl Shr<&Sentence> for ExpressionTree{
+    type Output = ExpressionTree;
+
+    fn shr(self, rhs: &Sentence) -> Self::Output {
+        self >> rhs.expr()
+    }
+}
+
+impl ShrAssign<&Sentence> for ExpressionTree{
+    fn shr_assign(&mut self, rhs: &Sentence) {
+        *self >>= rhs.expr();
     }
 }

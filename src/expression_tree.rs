@@ -1114,6 +1114,18 @@ impl From<String> for ExpressionTree{
     }
 }
 
+impl From<Sentence> for ExpressionTree{
+    fn from(value: Sentence) -> Self {
+        value.expr()
+    }
+}
+
+impl From<&Sentence> for ExpressionTree{
+    fn from(value: &Sentence) -> Self {
+        value.expr()
+    }
+}
+
 ///produces the denial of the expression tree.
 impl std::ops::Not for ExpressionTree{
     type Output = ExpressionTree;

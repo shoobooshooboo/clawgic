@@ -22,6 +22,7 @@ pub enum ClawgicError{
     NotEnoughOperators,
     InvalidPredicateName(String),
     InvalidVariableName(String),
+    InvalidVarBounds,
     AmbiguousExpression,
     TooFewVariables,
     TooManyVariables,
@@ -42,6 +43,7 @@ impl std::fmt::Display for ClawgicError{
             Self::TooFewVariables => "Not enough variables for the given predicate".to_string(),
             Self::TooManyVariables => "Too many operators for the given predicate".to_string(),
             Self::EmptyExpression => "Expression is empty".to_string(),
+            Self::InvalidVarBounds => "Invalid bounds on ExpressionVars object".to_string(),
         })
     }
 }

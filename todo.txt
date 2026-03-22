@@ -11,11 +11,12 @@ current goals v0.8.0 (predicate logic update titled: "the big one"):
     X Restructure OperatorNotation to have many read values and one write value per operator. 
         X (just a list where the first index is the "default/write" and all of them are reads.)
     X Disallow OperatorNotation from having any notations that use anything alphanum (to avoid ambiguity when tokenizing);
-    - change tokenize_expression() to take a notation
+    X change tokenize_expression() to take a notation
     X create Context/Universe struct to hold truth values and constants.
-        - actually use Universe in ExpressionTree impl
+        X actually use Universe in ExpressionTree impl
 ##TEST##
-    - replace ExpressionVar with ExpressionPredicate (Do we even need them anymore now that we have predicates? maybe just change predicates to work )
+    X Change ExpressionVar to be actual variables
+    - Overwrite call operator for Predicate
 ##TEST##
     - add Operator::Universal and Operator::Existential
 ##TEST##
