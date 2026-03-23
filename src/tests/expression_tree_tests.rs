@@ -8,11 +8,22 @@ fn sen0(name: &str) -> Sentence{
     Sentence::new(&Predicate::new(name, 0).unwrap(), &vec![]).unwrap()
 }
 
-#[test_case("A" ; "single variable")]
+fn senx(name: &str, vars: Vec<&str>) -> Sentence{
+    Sentence::new(&Predicate::new(name, vars.len()).unwrap(), &vars.iter().map(|v| v.to_string()).collect()).unwrap()
+}
+
+#[test_case("A" ; "single predicate0")]
+#[test_case("A()" ; "single predicate0 w parentheses")]
+#[test_case("A(a)" ; "single predicate1")]
+#[test_case("A23(a, b1)" ; "single predicate2")]
+#[test_case("A23(a, b1, c23124)" ; "single predicate3")]
 #[test_case("A&B" ; "one connective")]
+#[test_case("A(a1, b)&B(x300, y585)" ; "one connective w predicates")]
 #[test_case("(A&B)vC" ; "two connectives")]
+#[test_case("(A(a, b)&B(v5, w6))vC" ; "two connectives w predicates")]
 #[test_case("A->B<->C" ; "two arrows")]
 #[test_case("(~(A&B)vC->~D<->~~E)" ; "many connectives")]
+#[test_case("(~(A(a1, b2)&B1())vC2(x)->~D()<->~~E3)" ; "many connectives w predicates")]
 #[test_case("TRUE" ; "r#true")]
 #[test_case("FALSE" ; "r#false")]
 #[test_case("TRUE&FALSE" ; "true and false")]
@@ -24,7 +35,12 @@ fn new_ok(expression: &str){
 
 #[test_case("(A&B", ClawgicError::InvalidParentheses ; "missing close parentheses")]
 #[test_case("A&B)", ClawgicError::InvalidParentheses ; "missing open parentheses")]
-#[test_case("A&b", ClawgicError::InvalidPredicateName("b".to_string()) ; "lowercase variable")]
+#[test_case("A&b", ClawgicError::InvalidPredicateName("b".to_string()) ; "lowercase predicate")]
+#[test_case("A&BC", ClawgicError::InvalidPredicateName("BC".to_string()) ; "multi-letter predicate")]
+#[test_case("A(B)", ClawgicError::InvalidVariableName("B".to_string()) ; "uppercase variables")]
+#[test_case("A(bc)", ClawgicError::InvalidVariableName("bc".to_string()) ; "multi-letter variable")]
+#[test_case("A(b4c)", ClawgicError::InvalidVariableName("b4c".to_string()) ; "ill-formed variable")]
+#[test_case("A&B4C", ClawgicError::NotEnoughOperators ; "ill-formed predicate")]
 #[test_case("(A&B)&", ClawgicError::TooManyOperators ; "Too many operators")]
 #[test_case("(A)B", ClawgicError::NotEnoughOperators ; "Not enough operators")]
 #[test_case("A&~", ClawgicError::InvalidExpression ; "tilde nothing")]
@@ -66,6 +82,37 @@ fn evaluate(expression: &str, ex1: bool, ex2: bool, ex3: bool, ex4: bool){
 
     t.set_tval(&sen0("B"), true);
     assert_eq!(t.evaluate().unwrap(), ex4, "failed false true");
+}
+
+#[test_case("~(A(a1)&B(x, y))", false, true, true, true ; "negated conjunction")]
+#[test_case("A(a1)&B(x, y)", true, false, false, false ; "conjunction")]
+#[test_case("A(a1)vB(x, y)", true, true, false, true ; "disjunction")]
+#[test_case("A(a1)->B(x, y)", true, false, true, true ; "conditional")]
+#[test_case("A(a1)<->B(x, y)", true, false, true, false ; "biconditional")]
+fn evaluate_multi_var_pred(expression: &str, ex1: bool, ex2: bool, ex3: bool, ex4: bool){
+    let mut t = ExpressionTree::new(expression).unwrap();
+    t.set_tval(&senx("A", vec!["a1"]), true);
+    t.set_tval(&senx("B", vec!["x", "y"]), true);
+    assert_eq!(t.evaluate().unwrap(), ex1, "failed true true");
+
+    t.set_tval(&senx("B", vec!["x", "y"]), false);
+    assert_eq!(t.evaluate().unwrap(), ex2, "failed true false");
+
+    t.set_tval(&senx("A", vec!["a1"]), false);
+    assert_eq!(t.evaluate().unwrap(), ex3, "failed false false");
+
+    t.set_tval(&senx("B", vec!["x", "y"]), true);
+    assert_eq!(t.evaluate().unwrap(), ex4, "failed false true");
+}
+
+#[test]
+fn evaluate_irrelevant_tvalue(){
+    let mut t = ExpressionTree::new("A&B(x)").unwrap();
+    t.set_tval(&sen0("A"), true);
+    t.set_tval(&senx("B", vec!["x"]), true);
+    assert_eq!(t.evaluate().unwrap(), true);
+    t.set_tval(&senx("B", vec!["x1"]), false);
+    assert_eq!(t.evaluate().unwrap(), true);
 }
 
 #[test_case("~(A&B)", false, true, true, true ; "negated conjunction")]

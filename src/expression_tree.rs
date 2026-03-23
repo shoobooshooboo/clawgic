@@ -125,25 +125,35 @@ impl ExpressionTree{
                             Some(next_char) => next_char,
                             None => return Err(ClawgicError::InvalidExpression),
                         };
+                        if c != ')'{
+                            while c != ')'{
+                                substring.clear();
+                                while c != ',' && c != ')'{
+                                    substring.push(c);
+                                    c = match chars.next(){
+                                        Some(next_char) => next_char,
+                                        None => {more_to_parse = false; break;},
+                                    };
+                                }
 
-                        while c != ')'{
-                            substring.clear();
-                            while c != ','{
-                                substring.push(c);
+                                if !utils::is_valid_var_name(&substring){
+                                    return Err(ClawgicError::InvalidVariableName(substring));
+                                }
+
+                                variables.push(substring.clone());
+                                let last_char = c;
                                 c = match chars.next(){
                                     Some(next_char) => next_char,
                                     None => {more_to_parse = false; break;},
                                 };
+                                if last_char == ')'{
+                                    break;
+                                }
                             }
-
-                            if !utils::is_valid_var_name(&substring){
-                                return Err(ClawgicError::InvalidVariableName(substring));
-                            }
-
-                            variables.push(substring.clone());
+                        }else{
                             c = match chars.next(){
                                 Some(next_char) => next_char,
-                                None => {more_to_parse = false; break;},
+                                None => {result.push(Token::Sentence(Negation::default(), Predicate::new(&pred_name, variables.len()).unwrap(), variables)); break;},
                             };
                         }
                     }
@@ -277,6 +287,8 @@ impl ExpressionTree{
         while !operators.is_empty(){
             postfix.push(operators.pop().unwrap());
         }
+
+        // println!("{postfix:?}");
 
         Ok(postfix)
     }
