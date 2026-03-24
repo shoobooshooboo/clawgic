@@ -303,7 +303,7 @@ impl ExpressionTree{
                         let left = Self::construct_tree(shells)?;
                         Node::Operator { neg: denied, op, left: Box::new(left), right: Box::new(right) }
                     },
-                    Token::Sentence(denied, predicate, vars) => Node::Sentence { neg: denied, sen: predicate.inst(&vars)?},
+                    Token::Sentence(denied, predicate, vars) => Node::Sentence { neg: denied, sen: predicate.inst_strings(&vars)?},
                     Token::Constant(neg, value) => Node::Constant(neg, value),
                     Token::OpenParenthesis | Token::ClosedParenthesis => return Err(ClawgicError::InvalidParentheses),
                     Token::Tilde(_) => return Err(ClawgicError::InvalidExpression),
@@ -1114,15 +1114,17 @@ impl From<Node> for ExpressionTree{
     }
 }
 
-impl From<&str> for ExpressionTree{
-    fn from(value: &str) -> Self {
-        ExpressionTree::new(value).unwrap()
+impl TryFrom<&str> for ExpressionTree{
+    type Error = ClawgicError;
+    fn try_from(value: &str) -> Result<ExpressionTree, ClawgicError> {
+        ExpressionTree::new(value)
     }
 }
 
-impl From<String> for ExpressionTree{
-    fn from(value: String) -> Self {
-        ExpressionTree::new(&value).unwrap()
+impl TryFrom<String> for ExpressionTree{
+    type Error = ClawgicError;
+    fn try_from(value: String) -> Result<ExpressionTree, ClawgicError> {
+        ExpressionTree::new(&value)
     }
 }
 

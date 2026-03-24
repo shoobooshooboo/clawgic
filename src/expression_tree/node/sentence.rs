@@ -1,6 +1,6 @@
 use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not, Shl, ShlAssign, Shr, ShrAssign};
 
-use crate::{ClawgicError, prelude::{ExpressionTree}, utils};
+use crate::{ClawgicError, prelude::{ExpressionTree, ExpressionVar}, utils};
 
 /// Predicate from prediccate (first order) logic.
 /// Has a name and an arity (number of vars that it takes).
@@ -37,7 +37,11 @@ impl Predicate{
 
     /// Alternative to Sentence::new(). More readable in some cases. 
     /// Wins at code golf in all cases.
-    pub fn inst(&self, vars: &Vec<String>) -> Result<Sentence, ClawgicError>{
+    pub fn inst_strings(&self, vars: &Vec<String>) -> Result<Sentence, ClawgicError>{
+        Sentence::new_from_strings(self, vars)
+    }
+
+    pub fn inst(&self, vars: &Vec<ExpressionVar>) -> Result<Sentence, ClawgicError>{
         Sentence::new(self, vars)
     }
 }
@@ -49,12 +53,12 @@ pub struct Sentence{
     ///The identifying name and arity of the predicate
     predicate: Predicate,
     ///The variables associated with this instantiation of the predicate.
-    vars: Vec<String>,
+    vars: Vec<ExpressionVar>,
 }
 
 impl Sentence{
     /// Creates a new sentence iff all vars have valid names (and there are the right number of vars).
-    pub fn new(predicate: &Predicate, vars: &Vec<String>) -> Result<Self, ClawgicError>{
+    pub fn new_from_strings(predicate: &Predicate, vars: &Vec<String>) -> Result<Self, ClawgicError>{
         if vars.len() < predicate.arity{
             return Err(ClawgicError::TooFewVariables);
         }
@@ -62,13 +66,23 @@ impl Sentence{
             return Err(ClawgicError::TooManyVariables);
         }
 
+        let mut expr_vars = Vec::new();
         for v in vars{
-            if !utils::is_valid_var_name(v){
-                return Err(ClawgicError::InvalidVariableName(v.clone()))
-            }
+            expr_vars.push(ExpressionVar::new(v)?);
         }
 
-        Ok(Self{predicate: predicate.clone(), vars: vars.clone()})
+        Ok(Self{predicate: predicate.clone(), vars: expr_vars})
+    }
+
+    /// Creates a new Sentence iff there are the proper number of vars
+    pub fn new(predicate: &Predicate, vars: &Vec<ExpressionVar>) -> Result<Self, ClawgicError>{
+        if vars.len() < predicate.arity{
+            Err(ClawgicError::TooFewVariables)
+        } else if vars.len() > predicate.arity{
+            Err(ClawgicError::TooManyVariables)
+        } else{
+            Ok(Self{predicate: predicate.clone(), vars: vars.clone()})
+        }
     }
 
     ///Gets the predicate.
@@ -87,7 +101,7 @@ impl Sentence{
     }
 
     ///Gets all the vars.
-    pub fn vars(&self) -> &Vec<String>{
+    pub fn vars(&self) -> &Vec<ExpressionVar>{
         &self.vars
     }
 
@@ -106,7 +120,7 @@ impl ToString for Sentence{
         let mut s = self.predicate.name.clone();
         s += "(";
         for v in self.vars.iter(){
-            s += v;
+            s += v.name();
             s += ",";
         }
         if self.vars.len() > 0{

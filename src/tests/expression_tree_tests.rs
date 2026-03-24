@@ -9,7 +9,7 @@ fn sen0(name: &str) -> Sentence{
 }
 
 fn senx(name: &str, vars: Vec<&str>) -> Sentence{
-    Sentence::new(&Predicate::new(name, vars.len()).unwrap(), &vars.iter().map(|v| v.to_string()).collect()).unwrap()
+    Sentence::new_from_strings(&Predicate::new(name, vars.len()).unwrap(), &vars.iter().map(|v| v.to_string()).collect()).unwrap()
 }
 
 #[test_case("A" ; "single predicate0")]

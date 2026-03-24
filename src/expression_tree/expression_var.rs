@@ -1,14 +1,13 @@
 use std::ops::{Index, RangeBounds};
 
-use crate::{ClawgicError, expression_tree::ExpressionTree};
+use crate::{ClawgicError};
 
 /// Variable constant for an ExpressionTree. Not necessary for constructing a tree, but very helpful.
 /// 
 /// Because an ExpressionVar is immutable and un-consumable, you cannot use them directly in operations.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ExpressionVar{
     name: String,
-    expr: ExpressionTree,
 }
 
 impl ExpressionVar{
@@ -17,7 +16,7 @@ impl ExpressionVar{
         let name = name.trim().to_string();
         let mut chars = name.chars();
         let first = chars.next();
-        if first.is_none_or(|c| !c.is_uppercase()){
+        if first.is_none_or(|c| !c.is_lowercase()){
             return Err(ClawgicError::InvalidVariableName(name.to_string()));
         }
 
@@ -27,7 +26,7 @@ impl ExpressionVar{
             }
         }
 
-        Ok(Self {expr:  ExpressionTree::new(&name).unwrap(), name})
+        Ok(Self {name})
     }
 
     ///Returns a reference to the name of the ExpressionVar
