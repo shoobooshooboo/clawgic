@@ -106,28 +106,18 @@ impl Sentence{
     }
 
     pub fn expr(&self) -> ExpressionTree{
-        let vars: String = format!("{:?}", self.vars).chars().filter(|c| *c != '[' && *c != ']' && *c != '"').collect();
-        if !vars.is_empty(){
-            ExpressionTree::new(&format!("{}({})", self.name(), vars)).unwrap()
-        }else{
-            ExpressionTree::new(&format!("{}", self.name())).unwrap()
-        }
+        ExpressionTree::new(&self.to_string()).unwrap()
     }
 }
 
 impl ToString for Sentence{
     fn to_string(&self) -> String {
-        let mut s = self.predicate.name.clone();
-        s += "(";
-        for v in self.vars.iter(){
-            s += v.name();
-            s += ",";
+        let vars: String = format!("{:?}", self.vars).chars().filter(|c| *c != '[' && *c != ']' && *c != '"').collect();
+        if vars.is_empty(){
+            format!("{}", self.name())
+        }else{
+            format!("{}({})", self.name(), vars)
         }
-        if self.vars.len() > 0{
-            s.pop();
-        }
-        s += ")";
-        s
     }
 }
 

@@ -125,7 +125,7 @@ fn evaluate_with_uni(expression: &str, ex1: bool, ex2: bool, ex3: bool, ex4: boo
     let mut v = Universe::new();
     v.insert_sentence(sen0("A"), true);
     v.insert_sentence(sen0("B"), true);
-    println!("{:#?}", v);
+    // println!("{:#?}", v);
     assert_eq!(t.evaluate_with_uni(&v).unwrap(), ex1, "failed true true");
 
     v.insert_sentence(sen0("B"), false);
@@ -414,8 +414,8 @@ fn replace_expression(expression: &str, old: &str, new: &str, expected: &str){
     let new = ExpressionTree::new(new).unwrap();
     let expected = ExpressionTree::new(expected).unwrap();
     tree.replace_expression(&old, &new);
-    println!("{}", tree.prefix(None));
-    println!("{}", expected.prefix(None));
+    // println!("{}", tree.prefix(None));
+    // println!("{}", expected.prefix(None));
 
     assert!(tree.lit_eq(&expected));
 }

@@ -323,6 +323,9 @@ impl ExpressionTree{
                 let vars = Self::create_uni(left, uni);
                 Self::create_uni(right, vars)
             },
+            Node::Quantifier { subexpr, .. } => {
+                Self::create_uni(subexpr, uni)
+            }
             Node::Constant(..) => uni,
             Node::Sentence { neg: _, sen} => {
                 uni.insert_predicate(sen.predicate().clone());
@@ -1061,6 +1064,13 @@ impl ExpressionTree{
                     Some(op)
                 }
             },
+            Node::Quantifier { neg, op, ..} => {
+                if neg.count() > 0{
+                    Some(Operator::NOT)
+                }else{
+                    Some(op)
+                }
+            },
             Node::Sentence { neg, .. } => {
                 if neg.count() > 0{
                     Some(Operator::NOT)
@@ -1088,7 +1098,44 @@ impl ExpressionTree{
                     Some(op)
                 }
             },
+            Node::Quantifier { neg, op, ..} => {
+                if neg.count() > 0{
+                    None
+                }else{
+                    Some(op)
+                }
+            },
            _ => None
+        }
+    }
+
+    ///Gets the main binary connective (so non-tilde, non-quantifier).
+    pub fn main_binary_conn(&self) -> Option<Operator>{
+        match &self.root{
+            Node::Operator { neg, op, ..} => {
+                if neg.count() > 0{
+                    None
+                }else{
+                    Some(*op)
+                }
+            },
+            Node::Quantifier { neg, subexpr, ..} => {
+                if neg.count() > 0{
+                    None
+                }else{
+                    Self::main_binary_conn_rec(subexpr)
+                }
+            },
+           _ => None
+        }
+    }
+
+    /// Recursive helper for main_binary_conn
+    fn main_binary_conn_rec(node: &Node) -> Option<Operator>{
+        match &node{
+            Node::Operator { op, ..} => Some(*op),
+            Node::Quantifier{ subexpr, ..} => Self::main_binary_conn_rec(subexpr),
+            _ => None,
         }
     }
 }

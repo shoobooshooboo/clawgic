@@ -79,6 +79,21 @@ impl Operator{
         }
     }
 
+    /// Whether the operator is binary.
+    pub fn is_binary(&self) -> bool{
+        self.arity() == 2
+    }
+
+    /// Whether the operator is unary.
+    pub fn is_unary(&self) -> bool{
+        self.arity() == 1
+    }
+
+    /// Whether the operator is a quantifier.
+    pub fn is_quantifier(&self) -> bool{
+        self.is_uni() || self.is_exi()
+    }
+
     /// Returns the precedence of the operator.
     /// 
     /// Lower number is higher precedence.

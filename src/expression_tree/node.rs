@@ -5,7 +5,7 @@ pub mod sentence;
 use std::{mem::swap};
 
 use operator::Operator;
-use crate::{expression_tree::{ClawgicError, node::negation::Negation, universe::Universe}, operator_notation::OperatorNotation, prelude::Sentence};
+use crate::{expression_tree::{ClawgicError, node::negation::Negation, universe::Universe}, operator_notation::OperatorNotation, prelude::{ExpressionVar, Sentence}};
 
 /// Nodes for regular logical expression tree.
 /// 
@@ -17,18 +17,29 @@ use crate::{expression_tree::{ClawgicError, node::negation::Negation, universe::
 pub enum Node{
     /// Binary operator node.
     Operator{
-        /// Whether there is an odd number of tildes preceding the operator.
+        /// preceding negations
         neg: Negation,
-        /// the type of operator.
+        /// the type of operator. (exclusively a binary operator)
         op: Operator,
         /// left operand.
         left: Box<Node>,
         /// right operand.
         right: Box<Node>,
     },
+    /// Quantifier node.
+    Quantifier{
+        /// preceding negations
+        neg: Negation,
+        /// the type of operator (strictly universal or existential).
+        op: Operator,
+        /// variables bound by the quantifier.
+        vars: Vec<ExpressionVar>,
+        /// subexpression contained within quantifier.
+        subexpr: Box<Node>,
+    },
     /// Sentence node.
     Sentence{
-        /// Whether there is an odd number of tildes preceding the variable.
+        /// preceding negations
         neg: Negation,
         /// The actual sentence
         sen: Sentence,
@@ -121,9 +132,10 @@ impl Node{
     /// If the node has at least one tilde, remove one. otherwise, add one. returns a mutable reference.
     pub fn deny(&mut self) -> &mut Self{
         match self{
-            Node::Constant(denied, ..) => denied.deny(),
-            Node::Sentence { neg: denied, ..} => denied.deny(),
-            Node::Operator { neg: denied, ..} => denied.deny(),
+            Node::Constant(neg, ..) => neg.deny(),
+            Node::Sentence { neg, ..} => neg.deny(),
+            Node::Operator { neg, ..} => neg.deny(),
+            Node::Quantifier { neg, .. } => neg.deny(),
         };
         self
     }
@@ -131,9 +143,10 @@ impl Node{
     /// If the node has more than 1 tilde, remove two. otherwise add two. returns a mutable reference.
     pub fn double_deny(&mut self) -> &mut Self{
         match self{
-            Node::Constant(denied, ..) => denied.double_deny(),
-            Node::Sentence { neg: denied, ..} => denied.double_deny(),
-            Node::Operator { neg: denied, ..} => denied.double_deny(),
+            Node::Constant(neg, ..) => neg.double_deny(),
+            Node::Sentence { neg, ..} => neg.double_deny(),
+            Node::Operator { neg, ..} => neg.double_deny(),
+            Node::Quantifier { neg, .. } => neg.double_deny(),
         };
         self
     }
@@ -141,9 +154,10 @@ impl Node{
     /// Adds a tilde to the node; returns a mutable reference
     pub fn negate(&mut self) -> &mut Self{
         match self{
-            Node::Constant(denied, ..) => denied.negate(),
-            Node::Sentence { neg: denied, ..} => denied.negate(),
-            Node::Operator { neg: denied, ..} => denied.negate(),
+            Node::Constant(neg, ..) => neg.negate(),
+            Node::Sentence { neg, ..} => neg.negate(),
+            Node::Operator { neg, ..} => neg.negate(),
+            Node::Quantifier { neg, .. } => neg.negate(),
         };
         self
     }
@@ -151,9 +165,10 @@ impl Node{
     // Adds two tildes to the node; returns a mutable reference
     pub fn double_negate(&mut self) -> &mut Self{
         match self{
-            Node::Constant(denied, ..) => denied.double_negate(),
-            Node::Sentence { neg: denied, ..} => denied.double_negate(),
-            Node::Operator { neg: denied, ..} => denied.double_negate(),
+            Node::Constant(neg, ..) => neg.double_negate(),
+            Node::Sentence { neg, ..} => neg.double_negate(),
+            Node::Operator { neg, ..} => neg.double_negate(),
+            Node::Quantifier { neg, .. } => neg.double_negate(),
         };
         self
     }
@@ -161,9 +176,10 @@ impl Node{
     /// Reduces the number of tildes to 0 or 1, retaining the truth value of the node; returns a mutable reference.
     pub fn reduce_negation(&mut self) -> &mut Self{
         match self{
-            Node::Constant(denied, ..) => denied.reduce(),
-            Node::Sentence { neg: denied, ..} => denied.reduce(),
-            Node::Operator { neg: denied, ..} => denied.reduce(),
+            Node::Constant(neg, ..) => neg.reduce(),
+            Node::Sentence { neg, ..} => neg.reduce(),
+            Node::Operator { neg, ..} => neg.reduce(),
+            Node::Quantifier { neg, .. } => neg.reduce(),
         };
         self
     }
@@ -388,37 +404,33 @@ impl Node{
 
     ///Returns a string representation of the current node based on the given notation.
     pub fn print(&self, notation: &OperatorNotation) -> String{
+        let mut s = String::new();
         match self{
-            Self::Operator { neg: denied, op, .. } => {
-                let mut s = String::new();
-                if denied.is_denied(){
-                    s.push_str(&notation[Operator::NOT]);
-                }
+            Self::Operator { neg, op, .. } => {
+                s.push_str(&notation[Operator::NOT].repeat(neg.count() as usize));
                 s.push_str(&notation[*op]);
-
-                s
             }
-            Self::Sentence { neg: denied, sen, .. } => {
-                let mut s = String::new();
-                if denied.is_denied(){
-                    s.push_str(&notation[Operator::NOT]);
-                }
-                s.push_str(sen.name());
-                s
+            Self::Sentence { neg, sen, .. } => {
+                s.push_str(&notation[Operator::NOT].repeat(neg.count() as usize));
+                s.push_str(&sen.to_string());
             }
-            Self::Constant(denied, b) => {
-                let mut s = String::new();
-                for _ in 0..denied.count(){
-                    s.push_str(&notation[Operator::NOT])
-                }
-                s + 
+            Self::Constant(neg, b) => {
+                s.push_str(&notation[Operator::NOT].repeat(neg.count() as usize));
+                s +=
                 if *b{
                     "TRUE"
                 }else{
                     "FALSE"
-                }
+                };
+            }
+            Self::Quantifier { neg, op, vars, .. } => {
+                s.push_str(&notation[Operator::NOT].repeat(neg.count() as usize));
+                s.push_str(&notation[*op]);
+                let var_string: String = format!("({:?})", vars).chars().filter(|c| *c != '[' && *c != ']' && *c != '"').collect();
+                s.push_str(&var_string);
             }
         }
+        s
     }
 
     ///Returns a string representation of the current node based on `OperationNotation::ascii()`.

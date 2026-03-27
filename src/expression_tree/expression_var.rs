@@ -1,4 +1,4 @@
-use std::ops::{Index, RangeBounds};
+use std::{fmt::Display, ops::{Index, RangeBounds}};
 
 use crate::{ClawgicError};
 
@@ -135,5 +135,11 @@ impl TryFrom<&str> for ExpressionVar{
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         Self::new(value)
+    }
+}
+
+impl Display for ExpressionVar{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
     }
 }
