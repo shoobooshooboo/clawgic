@@ -16,10 +16,12 @@ current goals v0.8.0 (predicate logic update titled: "the big one"):
         X actually use Universe in ExpressionTree impl
 ##TEST##
     X Change ExpressionVar to be actual variables
-    - Overwrite call operator for Predicate
 ##TEST##
-    - add Operator::Universal and Operator::Existential
-##TEST##
+    X add Operator::Universal and Operator::existential
+    - add quantifiers to Node::Operator
+        - print
+        - evaluate
+    - add quantifiers to OperatorNotation
     - add ExpressionTree::universal() and ExpressionTree::existential()
     - add ExpressionTree/Node::quant_exch()
 ##TEST##

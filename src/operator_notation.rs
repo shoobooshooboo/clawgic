@@ -241,6 +241,8 @@ impl Index<&str> for OperatorNotation{
             Operator::BICON => &Operator::BICON,
             Operator::NOT => &Operator::NOT,
             Operator::CON => &Operator::CON,
+            Operator::EXI => &Operator::EXI,
+            Operator::UNI => &Operator::UNI,
         }
     }
 }

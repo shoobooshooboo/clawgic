@@ -16,11 +16,14 @@ pub enum Operator{
     CON,
     /// Biconditional. <->
     BICON,
-    
+    /// Universal. @
+    UNI,
+    /// Existential #
+    EXI,
 }
 
 impl Operator{
-    /// Checks if the current node is a conjunction.
+    /// Checks if the operator is a conjunction.
     pub fn is_and(&self) -> bool{
         match self{
             Self::AND => true,
@@ -28,7 +31,7 @@ impl Operator{
         }
     }
 
-    /// Checks if the current node is a disjunction.
+    /// Checks if the operator is a disjunction.
     pub fn is_or(&self) -> bool{
         match self{
             Self::OR => true,
@@ -36,7 +39,7 @@ impl Operator{
         }
     }
 
-    /// Checks if the current node is a conditional.
+    /// Checks if the operator is a conditional.
     pub fn is_con(&self) -> bool{
         match self{
             Self::CON => true,
@@ -44,7 +47,7 @@ impl Operator{
         }
     }
 
-    /// Checks if the current node is a biconditional.
+    /// Checks if the operator is a biconditional.
     pub fn is_bicon(&self) -> bool{
         match self{
             Self::BICON => true,
@@ -52,7 +55,7 @@ impl Operator{
         }
     }
 
-    /// Checks if the current node is a negation.
+    /// Checks if the operator is a negation.
     pub fn is_not(&self) -> bool{
         match self{
             Self::NOT => true,
@@ -60,13 +63,34 @@ impl Operator{
         }
     }
 
-    /// Returns the precedence of the node.
-    /// Higher number is higher precedence.
+    /// Checks if the operator is an universal
+    pub fn is_uni(&self) -> bool{
+        match self{
+            Self::UNI => true,
+            _ => false,
+        }
+    }
+
+    /// Checks if the operator is an existential
+    pub fn is_exi(&self) -> bool{
+        match self{
+            Self::EXI => true,
+            _ => false,
+        }
+    }
+
+    /// Returns the precedence of the operator.
+    /// 
+    /// Lower number is higher precedence.
+    /// 
     /// Precedence is as follows:
     /// * AND (conjunction): 3
     /// * OR (disjunction): 3
     /// * CON (conditional): 2
     /// * BICON (biconditional): 1 
+    /// * UNI (universal): 0
+    /// * EXI (existential): 0
+    /// * NOT (negation): 0
     pub fn precedence(&self) -> u8{
         match self{
             Self::AND => 3,
@@ -74,10 +98,38 @@ impl Operator{
             Self::CON => 2,
             Self::BICON => 1,
             Self::NOT => 0,
+            Self::UNI => 0,
+            Self::EXI => 0,
         }
     }
 
-    /// Takes two booleans and performs the appropriate evaluation with the given operator.
+    /// Returns the arity of the operator.
+    /// 
+    /// Binary operators return 2, unary return 1.
+    /// 
+    /// Arity is as follows:
+    /// * AND (conjunction): 2
+    /// * OR (disjunction): 2
+    /// * CON (conditional): 2
+    /// * BICON (biconditional): 2 
+    /// * UNI (universal): 1
+    /// * EXI (existential): 1
+    /// * NOT (negation): 1
+    pub fn arity(&self) -> u8{
+        match self{
+            Self::AND |
+            Self::OR |
+            Self::CON | 
+            Self::BICON => 2,
+            Self::NOT |
+            Self::UNI |
+            Self::EXI => 1,
+        }
+    }
+
+    /// Takes two booleans and performs the appropriate evaluation with the given binary operator. 
+    /// 
+    /// panics if a unary operator is given.
     /// 
     /// # ex
     /// ```
@@ -88,17 +140,19 @@ impl Operator{
     /// assert!(!op.execute(false, true));
     /// assert!(!op.execute(false, false));
     /// ```
-    pub fn execute(&self, left: bool, right: bool) -> bool{
+    pub fn execute_binary(&self, left: bool, right: bool) -> bool{
         match self{
             Self::AND => left && right,
             Self::OR => left || right,
             Self::CON => !left || right,
             Self::BICON => left == right,
-            Self::NOT => panic!("Operator nodes cannot be Negation nodes"),
+            Self::NOT | Self::UNI | Self::EXI => panic!("Attempting to evaluate a unary operator as a binary operator"),
         }
     }
 
-    /// Attempts short-circuit evaluation with only one boolean.
+    /// Attempts short-circuit evaluation with only one boolean with the given binary operator.
+    /// 
+    /// panics if unary operator is given
     /// 
     /// # ex
     /// ```
@@ -116,13 +170,13 @@ impl Operator{
     /// assert_eq!(op.short_circuit(false), None);
     /// assert_eq!(op.short_circuit(true), None);
     /// ```
-    pub fn short_circuit(&self, left: bool) -> Option<bool>{
+    pub fn short_circuit_bin(&self, left: bool) -> Option<bool>{
         match self{
             Self::AND => if !left {Some(false)} else {None},
             Self::OR => if left {Some(true)} else {None},
             Self::CON => if !left {Some(true)} else {None} ,
             Self::BICON => None,
-            Self::NOT => panic!("Operator nodes cannot be Negation nodes"),
+            Self::NOT | Self::UNI | Self::EXI => panic!("Attempting to evaluate a unary operator as a binary operator"),
         }
     }
 }

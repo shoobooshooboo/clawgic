@@ -75,9 +75,9 @@ impl Node{
         match self{
             Self::Operator{op, neg: denied, left, right} => {
                 let left_result = left.evaluate(uni)?;
-                let result = match op.short_circuit(left_result){
+                let result = match op.short_circuit_bin(left_result){
                     Some(b) => b,
-                    None => op.execute(left_result, right.evaluate(uni)?),
+                    None => op.execute_binary(left_result, right.evaluate(uni)?),
                 };
                 Ok(result != denied.is_denied())
             }
