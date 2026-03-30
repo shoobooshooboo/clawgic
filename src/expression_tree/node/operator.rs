@@ -185,7 +185,7 @@ impl Operator{
     /// assert_eq!(op.short_circuit(false), None);
     /// assert_eq!(op.short_circuit(true), None);
     /// ```
-    pub fn short_circuit_bin(&self, left: bool) -> Option<bool>{
+    pub fn short_circuit_binary(&self, left: bool) -> Option<bool>{
         match self{
             Self::AND => if !left {Some(false)} else {None},
             Self::OR => if left {Some(true)} else {None},

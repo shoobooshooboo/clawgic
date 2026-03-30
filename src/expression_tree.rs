@@ -482,7 +482,7 @@ impl ExpressionTree{
         match self.value.get(){
             Some(v) => Ok(v),
             None => {
-                let result = self.root.evaluate(&self.uni);
+                let result = self.root.evaluate(&self.uni, &mut HashMap::new());
                 match result{
                     Ok(b) => {
                         self.value.replace(Some(b));
@@ -496,7 +496,7 @@ impl ExpressionTree{
 
     /// Attempts to evaluate the tree with the given set of variables.
     pub fn evaluate_with_uni(&self, uni: &Universe) -> Result<bool, ClawgicError>{
-        self.root.evaluate(uni)
+        self.root.evaluate(uni, &mut HashMap::new())
     }
 
     /// Gets the prefix representation of the tree.

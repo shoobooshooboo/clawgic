@@ -18,16 +18,22 @@ current goals v0.8.0 (predicate logic update titled: "the big one"):
     X Change ExpressionVar to be actual variables
 ##TEST##
     X add Operator::Universal and Operator::existential
-    - add quantifiers to Node::Operator
-        - print
-        - evaluate
+    - add Node::Quantifier
+        X printing
+            - INTERMISSION: UPDATE UNIVERSE TO USE ExpressionVar instead of String
+        - evaluation
     - add quantifiers to OperatorNotation
+    - add quantifiers to shunting_yard (so you can actually have a tree with quantifiers)
+        - Token::Quantifier
     - add ExpressionTree::universal() and ExpressionTree::existential()
     - add ExpressionTree/Node::quant_exch()
 ##TEST##
     - figure out how to reimplement satisfiability stuff
 ##TEST##
     - finish OperatorNotation constructor
+        - details are in the comment above it
+##TEST##
+    - 
     - update README.md
 
 design considerations:

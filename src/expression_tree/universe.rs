@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::{ClawgicError, prelude::{Predicate, Sentence}, utils};
+use crate::{ClawgicError, prelude::{ExpressionVar, Predicate, Sentence}};
 
 /// Evaluation context for an expression tree.
 ///
@@ -12,7 +12,7 @@ use crate::{ClawgicError, prelude::{Predicate, Sentence}, utils};
 pub struct Universe{
     //Things that exist
     /// All variables in the universe.
-    variables: HashSet<String>,
+    variables: HashSet<ExpressionVar>,
 
     /// All predicates in the universe. 
     /// 
@@ -28,34 +28,58 @@ impl Universe{
 
     /// Attempts to add the given variable into the Universe. 
     /// If the name is invalid, returns 
-    pub fn insert_variable(&mut self, variable: &str) -> Result<bool, ClawgicError>{
-        if !utils::is_valid_var_name(&variable){
-            return Err(ClawgicError::InvalidVariableName(variable.to_string()))
-        }
-
-        Ok(self.variables.insert(variable.to_string()))
+    pub fn insert_variable_str(&mut self, variable: &str) -> Result<bool, ClawgicError>{
+        Ok(self.variables.insert(ExpressionVar::new(variable)?))
     }
 
-    /// Attemps to add several variables into the Universe.
-    pub fn insert_variables<It: Iterator<Item = String>>(&mut self, variables: It) -> Result<(), ClawgicError>{
+    /// Adds the given variable into the Universe
+    pub fn insert_variable(&mut self, variable: ExpressionVar) -> bool{
+        self.variables.insert(variable)
+    }
+
+    /// Attemps to add several variable strings into the Universe.
+    pub fn insert_variable_strings<It: Iterator<Item = String>>(&mut self, variables: It) -> Result<(), ClawgicError>{
         for var in variables{
-            if !utils::is_valid_var_name(&var){
-                return Err(ClawgicError::InvalidVariableName(var));
-            }
-            self.variables.insert(var);
+            self.variables.insert(ExpressionVar::new(&var)?);
         }
 
         Ok(())
     }
 
+    /// Attemps to add several variables into the Universe.
+    pub fn insert_variables<It: Iterator<Item = ExpressionVar>>(&mut self, variables: It){
+        for var in variables{
+            self.variables.insert(var);
+        }
+    }
+
     ///removes the variable from the universe.
     /// Returns true if the variable was in the universe.
-    pub fn remove_variable(&mut self, variable: &str) -> bool{
-        self.variables.remove(variable)
+    pub fn remove_variable_str(&mut self, variable: &str) -> bool{
+        if let Ok(var) = ExpressionVar::new(variable){
+            self.variables.remove(&var)
+        }else{
+            false
+        }
     }
 
     ///removes the variables from the universe.
-    pub fn remove_variables<It: Iterator<Item = String>>(&mut self, variables: It){
+    pub fn remove_variable_strings<It: Iterator<Item = String>>(&mut self, variables: It){
+        for var in variables{
+            if let Ok(exprvar) = ExpressionVar::new(&var){
+                self.variables.remove(&exprvar);
+            }
+        }
+    }
+
+    ///removes the variable from the universe.
+    /// Returns true if the variable was in the universe.
+    pub fn remove_variable(&mut self, variable: &ExpressionVar) -> bool{
+        self.variables.remove(&variable)
+    }
+
+    ///removes the variables from the universe.
+    pub fn remove_variables<It: Iterator<Item = ExpressionVar>>(&mut self, variables: It){
         for var in variables{
             self.variables.remove(&var);
         }
@@ -120,13 +144,22 @@ impl Universe{
     }
 
     ///returns the set of variables.
-    pub fn variables(&self) -> &HashSet<String>{
+    pub fn variables(&self) -> &HashSet<ExpressionVar>{
         &self.variables
     }
 
+    ///Whether the Universe contains the given variable
+    pub fn contains_variable(&self, variable: ExpressionVar) -> bool{
+        self.variables.contains(&variable)
+    }
+
     ///Whether the Universe contains the given variable.
-    pub fn contains_variable(&self, variable: &str) -> bool{
-        self.variables.contains(variable)
+    pub fn contains_variable_str(&self, variable: &str) -> bool{
+        if let Ok(var) = ExpressionVar::new(variable){
+            self.variables.contains(&var)
+        }else{
+            false
+        }
     }
 
     ///returns an iterator of all the predicates.

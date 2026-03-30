@@ -4,12 +4,12 @@ use crate::expression_tree::node::operator::Operator;
 
 /// Fake HashMap for OperatorNotation.
 struct NotationMap{
-    map: [Vec<String> ; 5],
+    map: [Vec<String> ; 7],
 }
 
 impl NotationMap{
     pub fn new(map: HashMap<Operator, (String, Vec<String>)>) -> NotationMap{
-        let mut nm = Self { map: [const {Vec::new()} ; 5] };
+        let mut nm = Self { map: [const {Vec::new()} ; 7] };
         for (op, (first, mut rest)) in map{
             rest.insert(0, first);
             nm.map[op as usize] = rest;

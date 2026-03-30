@@ -2,7 +2,7 @@ pub mod operator;
 pub mod negation;
 pub mod sentence;
 
-use std::{mem::swap};
+use std::{collections::HashMap, mem::swap};
 
 use operator::Operator;
 use crate::{expression_tree::{ClawgicError, node::negation::Negation, universe::Universe}, operator_notation::OperatorNotation, prelude::{ExpressionVar, Sentence}};
@@ -82,16 +82,20 @@ impl Node{
     /// 
     /// An operator node will attempt to perform its operation on it's left and right operands. 
     /// Will return an ExpressionTreeError if the evaluation of the left or right results in an `Err` value. 
-    pub fn evaluate(&self, uni: &Universe) -> Result<bool, ClawgicError>{
+    pub fn evaluate(&self, uni: &Universe, varsubs: &mut HashMap<ExpressionVar, ExpressionVar>) -> Result<bool, ClawgicError>{
         match self{
             Self::Operator{op, neg: denied, left, right} => {
-                let left_result = left.evaluate(uni)?;
-                let result = match op.short_circuit_bin(left_result){
+                let left_result = left.evaluate(uni, varsubs)?;
+                let result = match op.short_circuit_binary(left_result){
                     Some(b) => b,
-                    None => op.execute_binary(left_result, right.evaluate(uni)?),
+                    None => op.execute_binary(left_result, right.evaluate(uni, varsubs)?),
                 };
                 Ok(result != denied.is_denied())
-            }
+            },
+            Self::Quantifier { neg, op, vars, subexpr } => {
+                let vars: Vec<&ExpressionVar> = uni.variables().iter().collect();
+                todo!("QUANTIFIER EVALUATION NOT YET IMPLEMENTED");
+            },
             Self::Sentence { neg: denied, sen} =>{
                 let result = match uni.get_tval(sen){
                     Some(b) => {
@@ -100,34 +104,10 @@ impl Node{
                     None => return Err(ClawgicError::UninitializedSentence(sen.name().to_string())),
                 };
                 Ok(denied.is_denied() != result)
-            }
+            },
             Self::Constant(denied, value) => Ok(denied.is_denied() != *value),
         }
     }
-
-    /// evaluates the tree with a specific `Universe`.
-    /// 
-    /// If some variable is not present in the map, returns `ExpressionTreeError::UninitualizedVariable`
-    // pub fn evaluate_with(&self, vars: &HashMap<String, bool>) -> Result<bool, ClawgicError>{
-    //     match self{
-    //         Self::Operator{op, neg: denied, left, right} => {
-    //             let left_result = left.evaluate_with(vars)?;
-    //             let result = match op.short_circuit(left_result){
-    //                 Some(b) => b,
-    //                 None => op.execute(left_result, right.evaluate_with(vars)?),
-    //             };
-    //             Ok(result != denied.is_denied())
-    //         }
-    //         Self::Variable { neg: denied, name} =>{
-    //             let result = match vars.get(name){
-    //                 Some(b) => b.clone(),
-    //                 None => return Err(ClawgicError::UninitializedSentence(name.clone())),
-    //             };
-    //             Ok (result != denied.is_denied())
-    //         }
-    //         Self::Constant(denied, value) => Ok(denied.is_denied() != *value),
-    //     }
-    // }
 
     /// If the node has at least one tilde, remove one. otherwise, add one. returns a mutable reference.
     pub fn deny(&mut self) -> &mut Self{

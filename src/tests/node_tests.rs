@@ -1,5 +1,7 @@
 #![cfg(test)]
 
+use std::collections::HashMap;
+
 use crate::expression_tree::universe::Universe;
 use crate::prelude::*;
 use crate::expression_tree::node::{Node, negation::Negation};
@@ -13,7 +15,7 @@ fn sen0(name: &str) -> Sentence{
 #[test_case(false ; "false node")]
 fn constant_node(value: bool){
     let n = Node::Constant(Negation::default(), value);
-    assert_eq!(n.evaluate(&Universe::new()).unwrap(), value);
+    assert_eq!(n.evaluate(&Universe::new(), &mut HashMap::new()).unwrap(), value);
 }
 
 #[test_case(Negation::new(0), true, true ; "true, not denied")]
@@ -24,14 +26,14 @@ fn variable_node(neg: Negation, value: bool, expected: bool){
     let n = Node::Sentence { neg, sen: sen0("A") };
     let mut uni = Universe::new();
     uni.insert_sentence(sen0("A"), value);
-    assert_eq!(n.evaluate(&uni).unwrap(), expected);
+    assert_eq!(n.evaluate(&uni, &mut HashMap::new()).unwrap(), expected);
 }
 
 #[test]
 fn variable_node_empty(){
     let n = Node::Sentence { neg: Negation::new(0), sen: sen0("A")};
     let uni = Universe::new();
-    assert!(n.evaluate(&uni).is_err());
+    assert!(n.evaluate(&uni, &mut HashMap::new()).is_err());
 }
 
 #[test_case(Operator::AND, true, false, false, false ; "AND OPERATOR")]
@@ -46,7 +48,7 @@ fn operator_nodes(operator: Operator, ex1: bool, ex2: bool, ex3: bool, ex4: bool
         left: Box::new(Node::Constant(Negation::new(0), true)),
         right: Box::new(Node::Constant(Negation::new(0), true)) 
     };
-    assert_eq!(op.evaluate(&uni).unwrap(), ex1, "true true failed");
+    assert_eq!(op.evaluate(&uni, &mut HashMap::new()).unwrap(), ex1, "true true failed");
 
     let op = Node::Operator {
         neg: Negation::new(0),
@@ -54,7 +56,7 @@ fn operator_nodes(operator: Operator, ex1: bool, ex2: bool, ex3: bool, ex4: bool
         left: Box::new(Node::Constant(Negation::new(0), true)),
         right: Box::new(Node::Constant(Negation::new(0), false)) 
     };
-    assert_eq!(op.evaluate(&uni).unwrap(), ex2, "true false failed");
+    assert_eq!(op.evaluate(&uni, &mut HashMap::new()).unwrap(), ex2, "true false failed");
 
     let op = Node::Operator {
         neg: Negation::new(0),
@@ -62,7 +64,7 @@ fn operator_nodes(operator: Operator, ex1: bool, ex2: bool, ex3: bool, ex4: bool
         left: Box::new(Node::Constant(Negation::new(0), false)),
         right: Box::new(Node::Constant(Negation::new(0), true)) 
     };
-    assert_eq!(op.evaluate(&uni).unwrap(), ex3, "false true failed");
+    assert_eq!(op.evaluate(&uni, &mut HashMap::new()).unwrap(), ex3, "false true failed");
 
     let op = Node::Operator {
         neg: Negation::new(0),
@@ -70,7 +72,7 @@ fn operator_nodes(operator: Operator, ex1: bool, ex2: bool, ex3: bool, ex4: bool
         left: Box::new(Node::Constant(Negation::new(0), false)),
         right: Box::new(Node::Constant(Negation::new(0), false)) 
     };
-    assert_eq!(op.evaluate(&uni).unwrap(), ex4, "false false failed");
+    assert_eq!(op.evaluate(&uni, &mut HashMap::new()).unwrap(), ex4, "false false failed");
 }
 
 #[test_case(Node::Sentence{neg: Negation::new(0), sen: sen0("A")}, "A".to_string() ; "Variable")]
@@ -171,8 +173,8 @@ fn mat_eq_mono(mut node: Node, expected: Node){
 fn retaining_negations(val: bool){
     let mut node = Node::Constant(Negation::default(), val);
     let uni = Universe::new();
-    assert_eq!(node.double_deny().evaluate(&uni).unwrap(), val);
-    assert_eq!(node.double_negate().evaluate(&uni).unwrap(), val);
-    assert_eq!(node.double_deny().evaluate(&uni).unwrap(), val);
-    assert_eq!(node.reduce_negation().evaluate(&uni).unwrap(), val);
+    assert_eq!(node.double_deny().evaluate(&uni, &mut HashMap::new()).unwrap(), val);
+    assert_eq!(node.double_negate().evaluate(&uni, &mut HashMap::new()).unwrap(), val);
+    assert_eq!(node.double_deny().evaluate(&uni, &mut HashMap::new()).unwrap(), val);
+    assert_eq!(node.reduce_negation().evaluate(&uni, &mut HashMap::new()).unwrap(), val);
 }
