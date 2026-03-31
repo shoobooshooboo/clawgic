@@ -84,28 +84,64 @@ impl Node{
     /// Will return an ExpressionTreeError if the evaluation of the left or right results in an `Err` value. 
     pub fn evaluate(&self, uni: &Universe, varsubs: &mut HashMap<ExpressionVar, ExpressionVar>) -> Result<bool, ClawgicError>{
         match self{
-            Self::Operator{op, neg: denied, left, right} => {
+            Self::Operator{op, neg, left, right} => {
                 let left_result = left.evaluate(uni, varsubs)?;
-                let result = match op.short_circuit_binary(left_result){
+                let result = match op.short_circuit(left_result){
                     Some(b) => b,
                     None => op.execute_binary(left_result, right.evaluate(uni, varsubs)?),
                 };
-                Ok(result != denied.is_denied())
+                Ok(result != neg.is_denied())
             },
             Self::Quantifier { neg, op, vars, subexpr } => {
-                let vars: Vec<&ExpressionVar> = uni.variables().iter().collect();
-                todo!("QUANTIFIER EVALUATION NOT YET IMPLEMENTED");
+                //first, make sure there are no multi-captured vars
+                for v in uni.variables().iter(){
+                    if vars.contains(v){
+                        return Err(ClawgicError::MultiBoundVar(v.name().to_string()))
+                    }
+                }
+
+                //enumerate all concrete vars in the universe
+                let uni_vars: Vec<&ExpressionVar> = uni.variables().iter().collect();
+                let max = uni_vars.len();
+                //store all captured vars in an easily accessible way
+                let mut quant_vars: Vec<(&ExpressionVar, usize)> = vars.iter().map(|v| (v,0)).collect();
+                //If the op is universal and reaches the end of the loop without short-circuting, then the result is true.
+                //If it's an existential, the default is false.
+                let mut result = op.is_uni();
+                
+                //while all posibilities have not been covered
+                while quant_vars.last().unwrap().1 < max{
+                    for v in quant_vars.iter(){
+                        varsubs.insert(v.0.clone(), uni_vars[v.1].clone());
+                    }
+
+                    //short circuit
+                    match op.short_circuit(subexpr.evaluate(uni, varsubs)?){
+                        Some(b) => {result = b; break;},
+                        None => (),
+                    }
+
+                    //update quant_vars
+                    let mut i = 0;
+                    quant_vars[i].1 += 1;
+                    while i < quant_vars.len() - 1 && quant_vars[i].1 >= max{
+                        quant_vars[i].1 = 0;
+                        i += 1;
+                    }
+                }
+
+                Ok(result != neg.is_denied())
             },
-            Self::Sentence { neg: denied, sen} =>{
+            Self::Sentence { neg, sen} =>{
                 let result = match uni.get_tval(sen){
                     Some(b) => {
                         b
                     },
                     None => return Err(ClawgicError::UninitializedSentence(sen.name().to_string())),
                 };
-                Ok(denied.is_denied() != result)
+                Ok(neg.is_denied() != result)
             },
-            Self::Constant(denied, value) => Ok(denied.is_denied() != *value),
+            Self::Constant(neg, value) => Ok(neg.is_denied() != *value),
         }
     }
 

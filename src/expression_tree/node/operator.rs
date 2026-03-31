@@ -165,7 +165,7 @@ impl Operator{
         }
     }
 
-    /// Attempts short-circuit evaluation with only one boolean with the given binary operator.
+    /// Attempts short-circuit evaluation with only one boolean with the given operator.
     /// 
     /// panics if unary operator is given
     /// 
@@ -185,13 +185,13 @@ impl Operator{
     /// assert_eq!(op.short_circuit(false), None);
     /// assert_eq!(op.short_circuit(true), None);
     /// ```
-    pub fn short_circuit_binary(&self, left: bool) -> Option<bool>{
+    pub fn short_circuit(&self, left: bool) -> Option<bool>{
         match self{
-            Self::AND => if !left {Some(false)} else {None},
-            Self::OR => if left {Some(true)} else {None},
+            Self::AND | Self::UNI => if !left {Some(false)} else {None},
+            Self::OR | Self::EXI => if left {Some(true)} else {None},
             Self::CON => if !left {Some(true)} else {None} ,
             Self::BICON => None,
-            Self::NOT | Self::UNI | Self::EXI => panic!("Attempting to evaluate a unary operator as a binary operator"),
+            Self::NOT => panic!("Attempting to evaluate a unary operator as a binary operator"),
         }
     }
 }
