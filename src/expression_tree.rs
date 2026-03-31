@@ -8,12 +8,14 @@ use node::Node;
 use node::operator::Operator;
 use std::cell::Cell;
 use std::collections::HashMap;
+use std::iter::Filter;
+use std::str::Chars;
 
 use crate::expression_tree::node::negation::Negation;
 use crate::expression_tree::universe::Universe;
 use crate::operator_notation::OperatorNotation;
 use crate::{ClawgicError, utils};
-use crate::prelude::{Predicate, Sentence};
+use crate::prelude::{ExpressionVar, Predicate, Sentence};
 
 /// Expression tree for logical expressions in SL.
 #[derive(Debug, Clone)]
@@ -76,6 +78,48 @@ impl ExpressionTree{
         })
     }
 
+    fn parse_vars(c: &mut char, chars: &mut Filter<Chars<'_>, impl FnMut(&char) -> bool>, more_to_parse: &mut bool) -> Result<Vec<ExpressionVar>, ClawgicError>{
+        let mut variables = Vec::new();
+        let mut substring = String::new();
+        if *c == '('{
+            *c = match chars.next(){
+                Some(next_char) => next_char,
+                None => return Err(ClawgicError::InvalidExpression),
+            };
+            if *c != ')'{
+                while *c != ')'{
+                    substring.clear();
+                    while *c != ',' && *c != ')'{
+                        substring.push(*c);
+                        *c = match chars.next(){
+                            Some(next_char) => next_char,
+                            None => {*more_to_parse = false; break;},
+                        };
+                    }
+
+                    if !utils::is_valid_var_name(&substring){
+                        return Err(ClawgicError::InvalidVariableName(substring));
+                    }
+
+                    variables.push(substring.clone());
+                    let last_char = *c;
+                    *c = match chars.next(){
+                        Some(next_char) => next_char,
+                        None => {*more_to_parse = false; break;},
+                    };
+                    if last_char == ')'{
+                        break;
+                    }
+                }
+            }
+        }
+        let mut exprvars = Vec::new();
+        for v in variables{
+            exprvars.push(ExpressionVar::new(&v)?);
+        }
+        Ok(exprvars)
+    }
+
     /// Tokenizes a string representation of an infix logical expression and produces a Vec of `Shell`'s
     fn tokenize_expression(expression: &str, notation: &OperatorNotation) -> Result<Vec<Token>, ClawgicError>{
         //using chars enforces exactly one pass.
@@ -85,13 +129,13 @@ impl ExpressionTree{
             Some(next_char) => next_char,
             None => return Err(ClawgicError::EmptyExpression)
         };
-
+        let mut substring = String::new();
         let mut more_to_parse = true;
 
         while more_to_parse{
+            substring.clear();
             //handle predicates
             if c.is_alphanumeric() && c != 'v'{
-                let mut substring = String::new();
                 while c.is_uppercase(){
                     substring.push(c);
                     c = match chars.next(){
@@ -119,50 +163,11 @@ impl ExpressionTree{
                         };
                     }
                     let pred_name = substring.clone();
-                    let mut variables = Vec::new();
-                    if c == '('{
-                        c = match chars.next(){
-                            Some(next_char) => next_char,
-                            None => return Err(ClawgicError::InvalidExpression),
-                        };
-                        if c != ')'{
-                            while c != ')'{
-                                substring.clear();
-                                while c != ',' && c != ')'{
-                                    substring.push(c);
-                                    c = match chars.next(){
-                                        Some(next_char) => next_char,
-                                        None => {more_to_parse = false; break;},
-                                    };
-                                }
-
-                                if !utils::is_valid_var_name(&substring){
-                                    return Err(ClawgicError::InvalidVariableName(substring));
-                                }
-
-                                variables.push(substring.clone());
-                                let last_char = c;
-                                c = match chars.next(){
-                                    Some(next_char) => next_char,
-                                    None => {more_to_parse = false; break;},
-                                };
-                                if last_char == ')'{
-                                    break;
-                                }
-                            }
-                        }else{
-                            c = match chars.next(){
-                                Some(next_char) => next_char,
-                                None => {result.push(Token::Sentence(Negation::default(), Predicate::new(&pred_name, variables.len()).unwrap(), variables)); break;},
-                            };
-                        }
-                    }
+                    let variables = Self::parse_vars(&mut c, &mut chars, &mut more_to_parse)?;
                     result.push(Token::Sentence(Negation::default(), Predicate::new(&pred_name, variables.len()).unwrap(), variables));
                 }
             } else if !notation.get_potential_operators(&c.to_string()).is_empty() {
-                let mut substring = String::new();
                 substring.push(c);
-                let op: Operator;
                 while !notation.get_potential_operators(&substring).is_empty(){
                     c = match chars.next(){
                         Some(next_char) => next_char,
@@ -171,12 +176,17 @@ impl ExpressionTree{
                     substring.push(c);
                 }
                 substring.pop();
-                op = match notation.get_operator(&substring){
+
+                let op = match notation.get_operator(&substring){
                     Some(o) => o,
                     None => return Err(ClawgicError::UnknownSymbol(substring)),
                 };
+
                 if op.is_not(){
                     result.push(Token::Tilde(Negation::new(1)));
+                }else if op.is_quantifier(){
+                    let vars = Self::parse_vars(&mut c, &mut chars, &mut more_to_parse)?;
+                    result.push(Token::Quantifier(Negation::default(), op, vars));
                 }else{
                     result.push(Token::Operator(Negation::default(), op));
                 }
@@ -303,7 +313,11 @@ impl ExpressionTree{
                         let left = Self::construct_tree(shells)?;
                         Node::Operator { neg: denied, op, left: Box::new(left), right: Box::new(right) }
                     },
-                    Token::Sentence(denied, predicate, vars) => Node::Sentence { neg: denied, sen: predicate.inst_strings(&vars)?},
+                    Token::Quantifier(neg, op, vars) => {
+                        let subexpr = Self::construct_tree(shells)?;
+                        Node::Quantifier { neg, op, vars, subexpr: Box::new(subexpr) }
+                    }
+                    Token::Sentence(denied, predicate, vars) => Node::Sentence { neg: denied, sen: predicate.inst(&vars)?},
                     Token::Constant(neg, value) => Node::Constant(neg, value),
                     Token::OpenParenthesis | Token::ClosedParenthesis => return Err(ClawgicError::InvalidParentheses),
                     Token::Tilde(_) => return Err(ClawgicError::InvalidExpression),

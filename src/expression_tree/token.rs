@@ -1,4 +1,4 @@
-use crate::{expression_tree::node::negation::Negation, prelude::Predicate};
+use crate::{expression_tree::node::negation::Negation, prelude::{ExpressionVar, Predicate}};
 
 use super::node::operator::Operator;
 
@@ -10,9 +10,11 @@ pub enum Token{
     /// Binary logical operator.
     Operator(Negation, Operator),
     /// Boolean Variable.
-    Sentence(Negation, Predicate, Vec<String>),
+    Sentence(Negation, Predicate, Vec<ExpressionVar>),
     /// Boolean constant. True or False.
     Constant(Negation, bool),
+    /// Unary quantifier
+    Quantifier(Negation, Operator, Vec<ExpressionVar>),
     /// Open Parentheses.
     OpenParenthesis,
     ///Closed Parantheses.
@@ -42,6 +44,13 @@ impl Token{
     pub fn is_constant(&self) -> bool{
         match self{
             Self::Constant(..) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_quantifier(&self) -> bool{
+        match self{
+            Self::Quantifier(..) => true,
             _ => false,
         }
     }

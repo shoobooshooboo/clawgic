@@ -24,7 +24,8 @@ current goals v0.8.0 (predicate logic update titled: "the big one"):
         X evaluation
     X add quantifiers to OperatorNotation
     - add quantifiers to shunting_yard (so you can actually have a tree with quantifiers)
-        - Token::Quantifier
+        X Token::Quantifier
+        X add to tokenize_expression()
     - add ExpressionTree::universal() and ExpressionTree::existential()
     - add ExpressionTree/Node::quant_exch()
 ##TEST##
