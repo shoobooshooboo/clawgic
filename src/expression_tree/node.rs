@@ -130,10 +130,15 @@ impl Node{
                     }
                 }
 
+                //remove all of the local substitutions
+                for v in quant_vars.iter(){
+                    varsubs.remove(v.0);
+                }
+
                 Ok(result != neg.is_denied())
             },
             Self::Sentence { neg, sen} =>{
-                let result = match uni.get_tval(sen){
+                let result = match uni.get_tval(&sen.substitute(varsubs)){
                     Some(b) => {
                         b
                     },

@@ -1,4 +1,4 @@
-use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not, Shl, ShlAssign, Shr, ShrAssign};
+use std::{collections::HashMap, ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not, Shl, ShlAssign, Shr, ShrAssign}};
 
 use crate::{ClawgicError, prelude::{ExpressionTree, ExpressionVar}, utils};
 
@@ -83,6 +83,11 @@ impl Sentence{
         } else{
             Ok(Self{predicate: predicate.clone(), vars: vars.clone()})
         }
+    }
+
+    /// Creates a new Sentence with the given variable replacements
+    pub fn substitute(&self, subs: &HashMap<ExpressionVar, ExpressionVar>) -> Sentence{
+        Self { predicate: self.predicate.clone(), vars:  self.vars.clone().into_iter().map(|v| subs.get(&v).unwrap_or(&v).clone()).collect()}
     }
 
     ///Gets the predicate.
