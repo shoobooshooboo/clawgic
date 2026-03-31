@@ -46,6 +46,8 @@ impl OperatorNotation{
             (Operator::OR, ("v".to_string(), vec!["∨".to_string(), "|".to_string(), "+".to_string()])),
             (Operator::CON, ("->".to_string(), vec!["➞".to_string(), ">".to_string(), "-->".to_string()])),
             (Operator::BICON, ("<->".to_string(), vec!["⟷".to_string(), "<>".to_string(), "<-->".to_string()])),
+            (Operator::EXI, ("#".to_string(), vec![])),
+            (Operator::UNI, ("@".to_string(), vec![])),
             ].into_iter().collect())
         }
     }
@@ -64,6 +66,8 @@ impl OperatorNotation{
             (Operator::OR, ("v".to_string(), vec!["∨".to_string(), "|".to_string(), "+".to_string()])),
             (Operator::CON, ("➞".to_string(), vec!["->".to_string(), ">".to_string(), "-->".to_string()])),
             (Operator::BICON, ("⟷".to_string(), vec!["<->".to_string(), "<>".to_string(), "<-->".to_string()])),
+            (Operator::EXI, ("∃".to_string(), vec!["#".to_string()])),
+            (Operator::UNI, ("∀".to_string(), vec!["@".to_string()])),
             ].into_iter().collect())
         }
     }
@@ -82,6 +86,8 @@ impl OperatorNotation{
             (Operator::OR, ("v".to_string(), vec!["∨".to_string(), "|".to_string(), "+".to_string()])),
             (Operator::CON, ("->".to_string(), vec!["➞".to_string(), ">".to_string(), "-->".to_string()])),
             (Operator::BICON, ("<->".to_string(), vec!["⟷".to_string(), "<>".to_string(), "<-->".to_string()])),
+            (Operator::EXI, ("#".to_string(), vec![])),
+            (Operator::UNI, ("@".to_string(), vec![])),
             ].into_iter().collect())
         }
     }
@@ -100,6 +106,8 @@ impl OperatorNotation{
             (Operator::OR, ("+".to_string(), vec!["∨".to_string(), "|".to_string(), "v".to_string()])),
             (Operator::CON, ("➞".to_string(), vec!["->".to_string(), ">".to_string(), "-->".to_string()])),
             (Operator::BICON, ("⟷".to_string(), vec!["<->".to_string(), "<>".to_string(), "<-->".to_string()])),
+            (Operator::EXI, ("∃".to_string(), vec!["#".to_string()])),
+            (Operator::UNI, ("∀".to_string(), vec!["@".to_string()])),
             ].into_iter().collect())
         }
     }
@@ -118,6 +126,8 @@ impl OperatorNotation{
             (Operator::OR, ("+".to_string(), vec!["∨".to_string(), "|".to_string(), "v".to_string()])),
             (Operator::CON, ("->".to_string(), vec!["➞".to_string(), ">".to_string(), "-->".to_string()])),
             (Operator::BICON, ("<->".to_string(), vec!["⟷".to_string(), "<>".to_string(), "<-->".to_string()])),
+            (Operator::EXI, ("#".to_string(), vec![])),
+            (Operator::UNI, ("@".to_string(), vec![])),
             ].into_iter().collect())
         }
     }
@@ -136,6 +146,8 @@ impl OperatorNotation{
             (Operator::OR, ("|".to_string(), vec!["∨".to_string(), "+".to_string(), "v".to_string()])),
             (Operator::CON, ("➞".to_string(), vec!["->".to_string(), ">".to_string(), "-->".to_string()])),
             (Operator::BICON, ("⟷".to_string(), vec!["<->".to_string(), "<>".to_string(), "<-->".to_string()])),
+            (Operator::EXI, ("∃".to_string(), vec!["#".to_string()])),
+            (Operator::UNI, ("∀".to_string(), vec!["@".to_string()])),
             ].into_iter().collect())
         }
     }
@@ -154,6 +166,8 @@ impl OperatorNotation{
             (Operator::OR, ("|".to_string(), vec!["∨".to_string(), "+".to_string(), "v".to_string()])),
             (Operator::CON, ("->".to_string(), vec!["➞".to_string(), ">".to_string(), "-->".to_string()])),
             (Operator::BICON, ("<->".to_string(), vec!["⟷".to_string(), "<>".to_string(), "<-->".to_string()])),
+            (Operator::EXI, ("#".to_string(), vec![])),
+            (Operator::UNI, ("@".to_string(), vec![])),
             ].into_iter().collect())
         }
     }
@@ -262,6 +276,8 @@ impl Default for OperatorNotation{
             (Operator::OR, ("∨".to_string(), vec!["v".to_string(), "|".to_string(), "+".to_string()])),
             (Operator::CON, ("➞".to_string(), vec!["->".to_string(), ">".to_string(), "-->".to_string()])),
             (Operator::BICON, ("⟷".to_string(), vec!["<->".to_string(), "<>".to_string(), "<-->".to_string()])),
+            (Operator::EXI, ("∃".to_string(), vec!["#".to_string()])),
+            (Operator::UNI, ("∀".to_string(), vec!["@".to_string()])),
             ].into_iter().collect())
         }
     }
