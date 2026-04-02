@@ -111,6 +111,11 @@ impl ExpressionTree{
                         break;
                     }
                 }
+            }else{
+                *c = match chars.next(){
+                    Some(next_char) => next_char,
+                    None => {*more_to_parse = false; *c},
+                };
             }
         }
         let mut exprvars = Vec::new();
@@ -186,6 +191,9 @@ impl ExpressionTree{
                     result.push(Token::Tilde(Negation::new(1)));
                 }else if op.is_quantifier(){
                     let vars = Self::parse_vars(&mut c, &mut chars, &mut more_to_parse)?;
+                    if vars.is_empty(){
+                        return Err(ClawgicError::NoVarQuantifier);
+                    }
                     result.push(Token::Quantifier(Negation::default(), op, vars));
                 }else{
                     result.push(Token::Operator(Negation::default(), op));
@@ -253,6 +261,23 @@ impl ExpressionTree{
                     }
                     operators.push(Token::Operator(negation, op));
                 },
+                Token::Quantifier(mut negation, op, vars) => {
+                    if !operators.is_empty(){
+                        while let Some(Token::Operator(_, o)) = operators.last(){
+                            if o.precedence() < op.precedence(){
+                                break;
+                            }else if o.precedence() == op.precedence(){
+                                return Err(ClawgicError::AmbiguousExpression);
+                            }
+                            postfix.push(operators.pop().unwrap());
+                        }
+                        while operators.last().is_some_and(|op| op.is_tilde()){
+                            negation.negate();
+                            operators.pop();
+                        }
+                    }
+                    operators.push(Token::Quantifier(negation, op, vars));
+                }
                 Token::ClosedParenthesis => {
                     while operators.last().is_some_and(|op| !op.is_open_parentheses()){
                         postfix.push(operators.pop().unwrap());
@@ -286,6 +311,14 @@ impl ExpressionTree{
 
                                 postfix.push(Token::Sentence(negation, pred, vars))
                             },
+                            Token::Quantifier(mut negation, op, vars) => {
+                                while operators.last().is_some_and(|op| op.is_tilde()){
+                                    negation.negate();
+                                    operators.pop();
+                                }
+
+                                postfix.push(Token::Quantifier(negation, op, vars))
+                            }
                             Token::ClosedParenthesis | Token::OpenParenthesis | Token::Tilde(_) => panic!("this should be impossible"),
 
                         }
@@ -672,6 +705,22 @@ impl ExpressionTree{
             None => (),
         };
         self
+    }
+
+    ///consumes the tree and produces a tree in the form of ∃(vars)(self)
+    pub fn existential(self, vars: Vec<ExpressionVar>) -> Self{
+        Self { uni: self.uni, 
+            root: Node::Quantifier { neg: Negation::default(), op: Operator::EXI, vars: vars, subexpr: Box::new(self.root) },
+            value: Cell::new(None) 
+        }
+    }
+
+    ///consumes the tree and produces a tree in the form of ∀(vars)(self)
+    pub fn universal(self, vars: Vec<ExpressionVar>) -> Self{
+        Self { uni: self.uni, 
+            root: Node::Quantifier { neg: Negation::default(), op: Operator::UNI, vars: vars, subexpr: Box::new(self.root) },
+            value: Cell::new(None) 
+        }
     }
 
     ///checks if the two expressions are logically equivalent (produce the same truth tables). Very expensive function.
@@ -1063,6 +1112,30 @@ impl ExpressionTree{
     /// and handles it accordingly.
     pub fn mat_eq_mono(&mut self) -> Option<&mut Self>{
         match self.root.mat_eq_mono(){
+            Some(_) => Some(self),
+            None => None,
+        }
+    }
+
+    /// Performs the logical rule of Quantifier Exchange iff the main
+    /// non-tilde connective is a quantifier. Returns Some(&mut Self).
+    /// 
+    /// Otherwise, does nothing and returns None.
+    pub fn quant_exch(&mut self) -> Option<&mut Self>{
+        match self.root.quant_exch(){
+            Some(_) => Some(self),
+            None => None,
+        }
+    }
+
+    /// Performs the logical rule of Quantifier Exchange iff the main
+    /// non-tilde connective is a quantifier. Returns Some(&mut Self).
+    /// 
+    /// Otherwise, does nothing and returns None.
+    /// 
+    /// Opts for negation instead of denial
+    pub fn quant_exch_neg(&mut self) -> Option<&mut Self>{
+        match self.root.quant_exch_neg(){
             Some(_) => Some(self),
             None => None,
         }

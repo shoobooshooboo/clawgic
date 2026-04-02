@@ -423,6 +423,36 @@ impl Node{
         None
     }
 
+    /// Performs the logical rule of quantifier exchange iff the main (non-negation) operator is a quantifier.
+    pub fn quant_exch(&mut self) -> Option<&mut Self>{
+        match self{
+            Node::Quantifier { neg, op, subexpr, .. } => {
+                neg.deny();
+                *op = if op.is_uni(){ Operator::EXI } else { Operator::UNI };
+                subexpr.deny();
+                return Some(self);
+            },
+            _ => (),
+        }
+        None
+    }
+
+    /// Performs the logical rule of quantifier exchange iff the main (non-negation) operator is a quantifier.
+    /// 
+    /// Opts for negation instead of denial.
+    pub fn quant_exch_neg(&mut self) -> Option<&mut Self>{
+        match self{
+            Node::Quantifier { neg, op, subexpr, .. } => {
+                neg.negate();
+                *op = if op.is_uni(){ Operator::EXI } else { Operator::UNI };
+                subexpr.negate();
+                return Some(self);
+            },
+            _ => (),
+        }
+        None
+    }
+
     ///Returns a string representation of the current node based on the given notation.
     pub fn print(&self, notation: &OperatorNotation) -> String{
         let mut s = String::new();

@@ -23,11 +23,11 @@ current goals v0.8.0 (predicate logic update titled: "the big one"):
             X INTERMISSION: UPDATE UNIVERSE TO USE ExpressionVar instead of String
         X evaluation
     X add quantifiers to OperatorNotation
-    - add quantifiers to shunting_yard (so you can actually have a tree with quantifiers)
+    X add quantifiers to shunting_yard (so you can actually have a tree with quantifiers)
         X Token::Quantifier
         X add to tokenize_expression()
-    - add ExpressionTree::universal() and ExpressionTree::existential()
-    - add ExpressionTree/Node::quant_exch()
+    X add ExpressionTree::universal() and ExpressionTree::existential()
+    X add ExpressionTree/Node::quant_exch()
 ##TEST##
     - figure out how to reimplement satisfiability stuff
 ##TEST##

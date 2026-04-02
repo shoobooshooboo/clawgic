@@ -24,6 +24,7 @@ pub enum ClawgicError{
     InvalidVariableName(String),
     InvalidVarBounds,
     MultiBoundVar(String),
+    NoVarQuantifier,
     AmbiguousExpression,
     TooFewVariables,
     TooManyVariables,
@@ -45,6 +46,7 @@ impl std::fmt::Display for ClawgicError{
             Self::TooManyVariables => "Too many operators for the given predicate".to_string(),
             Self::EmptyExpression => "Expression is empty".to_string(),
             Self::MultiBoundVar(s) => format!("Expression contains variable \"{s}\" that is bound by nested quantifiers"),
+            Self::NoVarQuantifier => "Expression contains a quantifier with no variables".to_string(),
             Self::InvalidVarBounds => "Invalid bounds on ExpressionVars object".to_string(),
         })
     }
