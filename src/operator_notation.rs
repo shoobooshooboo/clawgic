@@ -209,7 +209,7 @@ impl OperatorNotation{
 
     ///Returns the operator that matches the given notation (if there is any)
     pub fn get_operator(&self, notation: &str) -> Option<Operator>{
-        for op in [Operator::NOT, Operator::AND, Operator::OR, Operator::CON, Operator::BICON]{
+        for op in [Operator::NOT, Operator::AND, Operator::OR, Operator::CON, Operator::BICON, Operator::UNI, Operator:: EXI]{
             for n in self.map[op].iter(){
                 if n == notation{
                     return Some(op)
@@ -225,7 +225,7 @@ impl OperatorNotation{
     /// The map it returns has the key-value pair of (operator, # of partially-matching notations)
     pub fn get_potential_operators(&self, prefix: &str) -> HashMap<Operator, usize>{
         let mut counts = HashMap::new();
-        for op in [Operator::NOT, Operator::AND, Operator::OR, Operator::CON, Operator::BICON]{
+        for op in [Operator::NOT, Operator::AND, Operator::OR, Operator::CON, Operator::BICON, Operator::UNI, Operator:: EXI]{
             for notation in self.map[op].iter(){
                 if notation.starts_with(prefix){
                     *counts.entry(op).or_insert(0) += 1;

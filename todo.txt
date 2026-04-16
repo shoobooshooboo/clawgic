@@ -29,6 +29,8 @@ current goals v0.8.0 (predicate logic update titled: "the big one"):
     X add ExpressionTree::universal() and ExpressionTree::existential()
     X add ExpressionTree/Node::quant_exch()
 ##TEST##
+    - make "Lxy" and "@x12y34" typa stuff valid syntax
+##TEST##
     - figure out how to reimplement satisfiability stuff
 ##TEST##
     - finish OperatorNotation constructor
