@@ -19,6 +19,7 @@ fn senx(name: &str, vars: Vec<&str>) -> Sentence{
 #[test_case("A23(a, b1, c23124)" ; "single predicate3")]
 #[test_case("A&B" ; "one connective")]
 #[test_case("@(x)L(x,c)" ; "simple quantifier")]
+#[test_case("@x1yz200Lx1y" ; "multi var quantifier succinct")]
 #[test_case("@(x, y, z)L(x,y)" ; "multi var quantifier")]
 #[test_case("#(x)@(y)L(x,y)" ; "multiple quantifiers")]
 #[test_case("@(x)#(y, z)(F(x,y)&F(y,z)->F(x,z))" ; "multi-quan complex expression")]

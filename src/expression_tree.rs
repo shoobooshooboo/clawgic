@@ -14,6 +14,7 @@ use std::str::Chars;
 use crate::expression_tree::node::negation::Negation;
 use crate::expression_tree::universe::Universe;
 use crate::operator_notation::OperatorNotation;
+use crate::utils::is_valid_var_name;
 use crate::{ClawgicError, utils};
 use crate::prelude::{ExpressionVar, Predicate, Sentence};
 
@@ -86,7 +87,7 @@ impl ExpressionTree{
                 Some(next_char) => next_char,
                 None => return Err(ClawgicError::InvalidExpression),
             };
-            if *c != ')'{
+            if *c != ')'{ //in the form A(x1,y2,...)
                 while *c != ')'{
                     substring.clear();
                     while *c != ',' && *c != ')'{
@@ -116,6 +117,27 @@ impl ExpressionTree{
                     Some(next_char) => next_char,
                     None => {*more_to_parse = false; *c},
                 };
+            }
+        }else{ //in the form Ax1y2...
+            while c.is_lowercase() && *c != 'v'{
+                substring.clear();
+                substring.push(*c);
+                *c = match chars.next(){
+                    Some(next_char) => next_char,
+                    None => {*more_to_parse = false; break;}
+                };
+                while c.is_numeric(){
+                    substring.push(*c);
+                    *c = match chars.next(){
+                        Some(next_char) => next_char,
+                        None => {*more_to_parse = false; break;}
+                    };
+                }
+
+                if !is_valid_var_name(&substring){
+                    return Err(ClawgicError::InvalidVariableName(substring));
+                }
+                variables.push(substring.clone());
             }
         }
         let mut exprvars = Vec::new();

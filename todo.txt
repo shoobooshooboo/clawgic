@@ -29,14 +29,14 @@ current goals v0.8.0 (predicate logic update titled: "the big one"):
     X add ExpressionTree::universal() and ExpressionTree::existential()
     X add ExpressionTree/Node::quant_exch()
 ##TEST##
-    - make "Lxy" and "@x12y34" typa stuff valid syntax
+    X make "Lxy" and "@x12y34" typa stuff valid syntax
 ##TEST##
-    - figure out how to reimplement satisfiability stuff
+    - reimplement satisfiability
+        - Sequent calculus :)
 ##TEST##
     - finish OperatorNotation constructor
         - details are in the comment above it
 ##TEST##
-    - 
     - update README.md
 
 design considerations:
@@ -58,6 +58,7 @@ v1.0 (full release update: "let's be clawgical about this"):
 - get 100% test coverage
 - benchmarks
 - reasonable optimizations
+    - have tokenize_expression() use Peekable Chars instead of Chars (it'll just make the code cleaner)
 
 whenever (unimportant and/or complicated):
 - .comm_eq() (tells whether two expressions are commutatively equivalent) maybe impossible.
