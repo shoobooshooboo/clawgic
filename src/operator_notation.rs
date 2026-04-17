@@ -181,6 +181,7 @@ impl OperatorNotation{
     /// * an operator notation contains `(`, `)`, or `,`
     /// * map does not contain all Operator types
     /// * map has multiple of the same notation
+    /// * any given notation uses `=` (this is a reserved symbol)
     pub fn new(map: HashMap<Operator, (String, Vec<String>)>) -> Result<Self, String>{
         if map.len() != 5{return Err("Not enough operators".to_string())};
         for (_, (first, rest)) in map.iter(){

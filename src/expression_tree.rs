@@ -124,7 +124,7 @@ impl ExpressionTree{
                 substring.push(*c);
                 *c = match chars.next(){
                     Some(next_char) => next_char,
-                    None => {*more_to_parse = false; break;}
+                    None => {*more_to_parse = false; variables.push(substring.clone()); break;}
                 };
                 while c.is_numeric(){
                     substring.push(*c);
@@ -410,6 +410,10 @@ impl ExpressionTree{
         if let Some(tval) = self.uni.get_tval_mut(sentence){
             self.value.replace(None);
             *tval = value;
+        }else if self.uni.contains_predicate(sentence.predicate()){
+            self.value.replace(None);
+            self.uni.insert_variables(sentence.vars().iter().cloned());
+            self.uni.insert_sentence(sentence.clone(), value);
         }
     }
 
@@ -418,9 +422,12 @@ impl ExpressionTree{
         for (sen, b) in sentences.iter(){
             if let Some(tval) = self.uni.get_tval_mut(sen){
                 *tval = *b;
+            }else if self.uni.contains_predicate(sen.predicate()){
+                self.uni.insert_variables(sen.vars().iter().cloned());
+                self.uni.insert_sentence(sen.clone(), *b);
             }
-            self.value.replace(None);
         }
+        self.value.replace(None);
     }
 
     /// Replaces all instances of var in the tree with new_expression. Adds all variables from new_expression to self as they are.
@@ -614,6 +621,19 @@ impl ExpressionTree{
                 Self::infix_rec(left, infix, notation);
                 infix.push_str(&op);
                 Self::infix_rec(right, infix, notation);
+                infix.push(')');
+            }
+            Node::Quantifier { neg, op: _, vars: _, subexpr } => {
+                let mut op = node.print(notation);
+                if neg.is_denied(){
+                    //TODO!: make this less ugly
+                    infix.push_str(&notation[Operator::NOT].repeat(neg.count() as usize));
+                    
+                    op = op.chars().skip(notation[Operator::NOT].chars().count() * neg.count() as usize).collect();
+                }
+                infix.push_str(&op);
+                infix.push('(');
+                Self::infix_rec(subexpr, infix, notation);
                 infix.push(')');
             }
             _ => infix.push_str(&node.print(notation)),

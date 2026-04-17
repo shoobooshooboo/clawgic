@@ -30,9 +30,14 @@ current goals v0.8.0 (predicate logic update titled: "the big one"):
     X add ExpressionTree/Node::quant_exch()
 ##TEST##
     X make "Lxy" and "@x12y34" typa stuff valid syntax
+
 ##TEST##
     - reimplement satisfiability
+        - add node id's
+        - make reserved special variable names
         - Sequent calculus :)
+##TEST##
+    - add = predicate
 ##TEST##
     - finish OperatorNotation constructor
         - details are in the comment above it

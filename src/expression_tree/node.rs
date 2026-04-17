@@ -5,7 +5,7 @@ pub mod sentence;
 use std::{collections::HashMap, mem::swap};
 
 use operator::Operator;
-use crate::{expression_tree::{ClawgicError, node::negation::Negation, universe::Universe}, operator_notation::OperatorNotation, prelude::{ExpressionVar, Sentence}};
+use crate::{expression_tree::{ClawgicError, node::negation::Negation, universe::Universe}, operator_notation::OperatorNotation, prelude::{ExpressionVar, Sentence}, utils};
 
 /// Nodes for regular logical expression tree.
 /// 
@@ -96,7 +96,7 @@ impl Node{
                 //first, make sure there are no multi-captured vars
                 for v in uni.variables().iter(){
                     if vars.contains(v){
-                        return Err(ClawgicError::MultiBoundVar(v.name().to_string()))
+                        return Err(ClawgicError::MultiBoundVar(v.name().to_string()));
                     }
                 }
 
@@ -126,6 +126,7 @@ impl Node{
                     quant_vars[i].1 += 1;
                     while i < quant_vars.len() - 1 && quant_vars[i].1 >= max{
                         quant_vars[i].1 = 0;
+                        quant_vars.get_mut(i + 1).and_then(|v| {v.1 += 1; Some(())});
                         i += 1;
                     }
                 }
@@ -477,7 +478,7 @@ impl Node{
             Self::Quantifier { neg, op, vars, .. } => {
                 s.push_str(&notation[Operator::NOT].repeat(neg.count() as usize));
                 s.push_str(&notation[*op]);
-                let var_string: String = format!("({:?})", vars).chars().filter(|c| *c != '[' && *c != ']' && *c != '"').collect();
+                let var_string: String = utils::print_variables_verbose(vars);
                 s.push_str(&var_string);
             }
         }

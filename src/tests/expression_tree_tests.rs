@@ -18,6 +18,7 @@ fn senx(name: &str, vars: Vec<&str>) -> Sentence{
 #[test_case("A23(a, b1)" ; "single predicate2")]
 #[test_case("A23(a, b1, c23124)" ; "single predicate3")]
 #[test_case("A&B" ; "one connective")]
+#[test_case("AxvBy" ; "technically not ambiguous")]
 #[test_case("@(x)L(x,c)" ; "simple quantifier")]
 #[test_case("@x1yz200Lx1y" ; "multi var quantifier succinct")]
 #[test_case("@(x, y, z)L(x,y)" ; "multi var quantifier")]
@@ -109,6 +110,39 @@ fn evaluate_multi_var_pred(expression: &str, ex1: bool, ex2: bool, ex3: bool, ex
 
     t.set_tval(&senx("B", vec!["x", "y"]), true);
     assert_eq!(t.evaluate().unwrap(), ex4, "failed false true");
+}
+
+#[test]
+fn evaluate_universal_simple(){
+    let mut t = ExpressionTree::new("@xAx").unwrap();
+    t.set_tval(&senx("A", vec!["a"]), true);
+    assert!(t.evaluate().unwrap(), "One true thing");
+    t.set_tval(&senx("A", vec!["a"]), false);
+    assert!(!t.evaluate().unwrap(), "One false thing");
+    
+    t.set_tval(&senx("A", vec!["a"]), true);
+    t.set_tval(&senx("A", vec!["b"]), false);
+    assert!(!t.evaluate().unwrap(), "One true one false");
+
+    t.set_tval(&senx("A", vec!["b"]), true);
+    assert!(t.evaluate().unwrap(), "two true");
+}
+
+#[test]
+fn evaluate_existential_simple(){
+    let mut t = ExpressionTree::new("#xAx").unwrap();
+    t.set_tval(&senx("A", vec!["a"]), true);
+    println!("{:#?}", t.universe());
+    assert!(t.evaluate().unwrap(), "One true thing");
+    t.set_tval(&senx("A", vec!["a"]), false);
+    assert!(!t.evaluate().unwrap(), "One false thing");
+    
+    t.set_tval(&senx("A", vec!["a"]), true);
+    t.set_tval(&senx("A", vec!["b"]), false);
+    assert!(t.evaluate().unwrap(), "One true one false");
+
+    t.set_tval(&senx("A", vec!["b"]), true);
+    assert!(t.evaluate().unwrap(), "two true");
 }
 
 #[test]
@@ -260,7 +294,7 @@ fn syn_eq(expr1: &str, expr2: &str, expected: bool){
 #[test_case("A&B", Ok(true) ; "over-populating")]
 #[test_case("A&B->C", Ok(true) ; "correct number of uni")]
 #[test_case("A&B->C&D", Err(ClawgicError::UninitializedSentence("D".to_string())) ; "under-populating")]
-fn set_variables(expr: &str, expected: Result<bool, ClawgicError>){
+fn set_tvals(expr: &str, expected: Result<bool, ClawgicError>){
     let mut t = ExpressionTree::new(expr).unwrap();
     let mut uni = HashMap::new();
     uni.insert(sen0("A"), true);

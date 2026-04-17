@@ -117,11 +117,11 @@ impl Sentence{
 
 impl ToString for Sentence{
     fn to_string(&self) -> String {
-        let vars: String = format!("{:?}", self.vars).chars().filter(|c| *c != '[' && *c != ']' && *c != '"').collect();
+        let vars = utils::print_variables_verbose(&self.vars);
         if vars.is_empty(){
             format!("{}", self.name())
         }else{
-            format!("{}({})", self.name(), vars)
+            format!("{}{}", self.name(), vars)
         }
     }
 }
